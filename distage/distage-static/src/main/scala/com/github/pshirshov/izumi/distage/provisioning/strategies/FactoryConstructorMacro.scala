@@ -24,7 +24,7 @@ object FactoryConstructorMacro {
 
     // A hack to support generic methods inside factories. No viable type info is available for generic parameters of these methods
     // so we have to resort to WeakTypeTags and thread this ugly fucking `if` everywhere ;_;
-    val tools = DIUniverseLiftables.generateUnsafeWeakSafeTypes(macroUniverse)
+    val tools = DIUniverseLiftables.generateUnsafeWeakSafeTypes(c)(macroUniverse)
 
     import tools.{liftableRuntimeUniverse, liftableSymbolInfo, liftableDIKey}
     import macroUniverse.Association._

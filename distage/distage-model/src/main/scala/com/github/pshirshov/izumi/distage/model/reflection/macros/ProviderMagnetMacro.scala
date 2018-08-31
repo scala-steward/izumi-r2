@@ -29,9 +29,9 @@ class ProviderMagnetMacro(val c: blackbox.Context) {
   private final val keyProvider = DependencyKeyProviderDefaultImpl.Static(macroUniverse)(symbolIntrospector)
   private final val tools =
     if (generateUnsafeWeakSafeTypes)
-      DIUniverseLiftables.generateUnsafeWeakSafeTypes(macroUniverse)
+      DIUniverseLiftables.generateUnsafeWeakSafeTypes(c)(macroUniverse)
     else
-      DIUniverseLiftables(macroUniverse)
+      DIUniverseLiftables(c)(macroUniverse)
 
   import tools.{liftableParameter, liftableSafeType}
   import c.universe._

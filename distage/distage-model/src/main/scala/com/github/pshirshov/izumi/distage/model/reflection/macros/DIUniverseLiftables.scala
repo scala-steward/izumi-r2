@@ -2,7 +2,11 @@ package com.github.pshirshov.izumi.distage.model.reflection.macros
 
 import com.github.pshirshov.izumi.distage.model.reflection.universe._
 
-abstract class DIUniverseLiftables[D <: StaticDIUniverse](val u: D) {
+import scala.reflect.macros.blackbox
+
+abstract class DIUniverseLiftables[C <: blackbox.Context](val c: C) {
+
+  val u: StaticDIUniverse { val u: c.universe.type }
 
   import u._
   import u.u._
@@ -46,16 +50,13 @@ abstract class DIUniverseLiftables[D <: StaticDIUniverse](val u: D) {
       """
   }
 
-  implicit val liftableDIKey: Liftable[DIKey] = {
-    Liftable[DIKey] {
-      d => (d: @unchecked) match {
-        case t: DIKey.TypeKey => q"$t"
-        case i: DIKey.IdKey[_] => q"${liftableIdKey(i)}"
-        case p: DIKey.ProxyElementKey => q"$p"
-        case s: DIKey.SetElementKey => q"$s"
-      }
+  implicit val liftableDIKey: Liftable[DIKey] =
+    (_: DIKey @unchecked) match {
+      case t: DIKey.TypeKey => q"$t"
+      case i: DIKey.IdKey[_] => q"${liftableIdKey(i)}"
+      case p: DIKey.ProxyElementKey => q"$p"
+      case s: DIKey.SetElementKey => q"$s"
     }
-  }
 
   // ParameterContext
 
@@ -105,19 +106,31 @@ abstract class DIUniverseLiftables[D <: StaticDIUniverse](val u: D) {
   }
 
   implicit val liftableAnnotation: Liftable[Annotation] = {
-    case Annotation(tpe, args, _) => q"""{
-    _root_.scala.reflect.runtime.universe.Annotation.apply(${SafeType(tpe)}.tpe, ${args.map(TreeLiteral)}, _root_.scala.collection.immutable.ListMap.empty)
+    ann =>
+      val expr = c.reifyTree(c.universe.internal.gen.mkRuntimeUniverseRef, c.typecheck(q"_root_.scala.reflect.runtime.universe.rootMirror"), c.typecheck(ann.tree))
+      c.info(c.enclosingPosition, showCode(expr), true)
+      q"""{
+          val expr = $expr;
+
+          println(expr.staticType)
+          println(expr.actualType)
+          println(expr.tree)
+    _root_.scala.reflect.runtime.universe.Annotation.apply(expr.tree)
     }"""
   }
 
 }
 
 object DIUniverseLiftables {
-  def apply(u: StaticDIUniverse): DIUniverseLiftables[u.type] = new DIUniverseLiftables[u.type](u) {
+  def apply(c: blackbox.Context)(u0: StaticDIUniverse { val u: c.universe.type }): DIUniverseLiftables[c.type] { val u: u0.type } = new DIUniverseLiftables[c.type](c) {
+    override val u: u0.type = u0
+
     override implicit val liftableSafeType: u.u.Liftable[u.SafeType] = liftableDefaultSafeType
   }
 
-  def generateUnsafeWeakSafeTypes(u: StaticDIUniverse): DIUniverseLiftables[u.type] = new DIUniverseLiftables[u.type](u) {
+  def generateUnsafeWeakSafeTypes(c: blackbox.Context)(u0: StaticDIUniverse { val u: c.universe.type }): DIUniverseLiftables[c.type] { val u: u0.type } = new DIUniverseLiftables[c.type](c) {
+    override val u: u0.type = u0
+
     override implicit val liftableSafeType: u.u.Liftable[u.SafeType] = liftableUnsafeWeakSafeType
   }
 }
