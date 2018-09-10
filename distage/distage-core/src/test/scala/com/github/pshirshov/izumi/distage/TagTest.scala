@@ -1,6 +1,6 @@
 package com.github.pshirshov.izumi.distage
 
-import com.github.pshirshov.izumi.distage.fixtures.HigherKindCases.HigherKindsCase1.OptionT
+import com.github.pshirshov.izumi.distage.fixtures.HigherKindCases.HigherKindsCase1.{OptionT, id}
 import com.github.pshirshov.izumi.distage.model.definition.With
 import com.github.pshirshov.izumi.distage.model.reflection.universe.RuntimeDIUniverse._
 import com.github.pshirshov.izumi.distage.model.reflection.universe.RuntimeDIUniverse.u._
@@ -9,12 +9,31 @@ import distage.Tag
 import org.scalatest.WordSpec
 
 trait X[Y] {
-  type Z = Y
+  type Z = id[Y]
 
   implicit def tagZ: Tag[Z]
 }
 
 class TagTest extends WordSpec with X[String] {
+
+  case class testTag[T: Tag]() {
+    type X[A] = Either[Int, A]
+    type Y = T
+
+    val res = Tag[X[Y {}]]
+  }
+
+  case class testTag2[T: Tag]() {
+    type X = List[T]
+
+    val res = Tag[X]
+  }
+
+  case class testTag3[F[_]: TagK]() {
+    type X = OptionT[F, Int]
+
+    val res = SafeType.get[X]
+  }
 
   def safe[T: TypeTag] = SafeType(typeOf[T])
 
@@ -63,6 +82,7 @@ class TagTest extends WordSpec with X[String] {
       assert(Tag[this.Z].tpe == safe[this.Z])
       assert(Tag[this.Z].tpe.tpe == typeOf[this.Z])
       assert(Tag[TagTest#Z].tpe == safe[TagTest#Z])
+      assert(Tag[TagTest#Z].tpe == safe[String])
     }
 
     "Work for a concrete type with available TypeTag" in {
@@ -94,13 +114,40 @@ class TagTest extends WordSpec with X[String] {
     }
 
     "handle function local type aliases" in {
-      def testTag[T: Tag]= {
+      def testTag[T: Tag] = {
         type X[A] = Either[Int, A]
 
         Tag[X[T {}]]
       }
 
       assert(testTag[String].tpe == safe[Either[Int, String]])
+
+      def testTag2[T: Tag] = {
+        type X = List[T]
+
+        Tag[X]
+      }
+
+      assert(testTag2[String].tpe == safe[List[String]])
+
+      def testTag3[F[_]: TagK] = {
+        type X = OptionT[F, Int]
+
+        Tag[X]
+      }
+
+      assert(testTag3[List].tpe == safe[OptionT[List, Int]])
+    }
+
+    "handle class local type aliases" in {
+
+      assert(testTag[String]().res.tpe == safe[Either[Int, String]])
+
+
+      assert(testTag2[String]().res.tpe == safe[List[String]])
+
+
+      assert(testTag3[List]().res == safe[OptionT[List, Int]])
     }
 
     "Work for an abstract type with available TagK when obscured by empty refinement" in {
