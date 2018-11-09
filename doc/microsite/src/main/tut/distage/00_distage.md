@@ -57,7 +57,7 @@ class HelloByeApp(greeter: Greeter, byer: Byer) {
 
 To actually run the app, we need to declare the real implementations for the `Greeter` and `Byer`. 
 
-```tut:book
+```tut:silent
 import distage.{ModuleDef, Injector}
 
 object HelloByeModule extends ModuleDef {
@@ -71,7 +71,7 @@ Since `HelloByeApp` implements itself already, we don't have to provide an imple
 
 Now we're ready to go:
  
-```tut:silent
+```tut:invisible
 // A hack because `tut` REPL fails to create classes via reflection when defined in REPL for some reason..
 // Also, we want to override HelloByeApp to not use stdin
 val originalModule = HelloByeModule
@@ -92,12 +92,15 @@ object HelloByeModule extends ModuleDef {
 }
 ```
 
-```tut:book
+```tut:silent
 val injector = Injector()
 val plan = injector.plan(HelloByeModule)
 val objects = injector.produce(plan)
 
 val app = objects.get[HelloByeApp]
+```
+
+```tut
 app.run()
 ```
 
@@ -107,11 +110,11 @@ Given a set of bindings, such as `HelloByeModule`, `distage` will look at the de
 of each implementation and devise a `plan` to satisfy each dependency using the other implementations in that module, it will happily return
 the `plan` back to you as a simple datatype. We can look at `HelloByeModule`'s plan while we're at it:
 
-```tut:silent
-val HelloByeModule = originalModule
+```tut:invisible
+val plan = injector.plan(originalModule)
 ```
 
-```tut:book
+```tut
 plan.render
 ```
 
@@ -119,98 +122,43 @@ Since plans are just data, we need to interpret them to create the actual object
 `Injector`'s `produce` method provides the default interpreter. Plans are detailed enough that interpreters don't need to implement any logic
 but execute the instructions in order - their output is fully determined by the plan.
 
-This is obviously great for debugging!
+This is obviously great for [debugging](#debugging-introspection-diagnostics-and-hooks)!
 
 In fact, we might as well [verify the plan at compile-time](#compile-time-checks) or [splice equivalent Scala code](#compile-time-instantiation)
 to do the instantiation, without ever running the application. When used in that way,
 `distage` is a great alternative to compile-time frameworks such as `MacWire` all the while keeping the flexibility to interpret
-at runtime when required. Said flexibility allows to create additional features, such as [Plugins](#plugins) and 
+at runtime when needed. Said flexibility allows to create additional features, such as [Plugins](#plugins) and 
 [Typesafe Config integration](#config-files) using simple transformations of plans and bindings.
 
-Speaking of runtime semantics, in `distage` classes are created exactly once, even if many different classes depend on them - they're always `Singletons`.
+Keep in mind that in `distage` classes are created exactly once, even if many different classes depend on them - they're always `Singletons`.
 For non-singleton semantics, see [Auto-Factories](#auto-factories).
 
-Speaking of flexibility, module definitions can be combined to produce larger modules via `++` and `overridenBy` operators.
+Module definitions can be combined to produce larger modules via `++` and `overridenBy` operators.
 
-Let's use `overridenBy` to greet in ALL CAPS now:
+Let's use `overridenBy` to greet in ALL CAPS:
 
-```scala
+```tut:silent
 val caps = HelloByeModule overridenBy new ModuleDef {
-  make[Hello].from(new Hello {
+  make[Greeter].from(new Greeter {
     override def hello(name: String) = println(s"HELLO ${name.toUpperCase}")
   })
 }
 
-val capsObjects = injector.produce(caps)
+val capsUniverse = injector.produce(caps)
+```
 
-capsObjects.get[HelloByeApp].run()
+```tut
+capsUniverse.get[HelloByeApp].run()
 ```
 
 We've overriden the `Hello` binding in `HelloByeModule` with a new implementation of `Hello` that prints in ALL CAPS.
-For simple cases like this we don't have to declare a new class or function as an implementation - we can just write it in-place.
+For simple cases like this we don't have to create a named class or function for the implementation - we can write it in-place.
 
 This concludes the basic `distage` tutorial!
 Check out the other sections for docs on advanced features, [integrations](#integrations) and unique features,
 such as [Garbage Collection](#using-garbage-collector).
 
-### Function Bindings
-
-To bind to a function instead of constructor use `.from` method in @scaladoc[ModuleDef](com.github.pshirshov.izumi.distage.model.definition.ModuleDef) DSL:
-
-```scala
-import distage._
-
-case class HostPort(host: String, port: Int)
-
-class HttpServer(hostPort: HostPort)
-
-trait HttpServerModule extends ModuleDef {
-  make[HttpServer].from {
-    hostPort: HostPort =>
-      val modifiedPort = hostPort.port + 1000
-      new HttpServer(hostPort.host, modifiedPort)
-  }
-}
-```
-
-To inject named instances or config values, add annotations to lambda arguments' types:
-
-```scala
-trait HostPortModule extends ModuleDef {
-  make[HostPort].named("default").from(HostPort("localhost", 8080))
-  make[HostPort].from {
-    (maybeConfigHostPort: Option[HostPort] @ConfPath("http"),
-     defaultHostPort: HostPort @Id("default")) =>
-      maybeConfigHostPort.getOrElse(defaultHostPort)
-  }
-}
-```
-
-Given a `Locator` we can retrieve instances by type, call methods on them or summon them with a function:
-
-```scala
-import scala.util.Random
-
-val objects: Locator = Injector().produce(???)
-
-objects.run {
-  (hello: Hello, bye: Bye) =>
-    val names = Array("Snow", "Marisa", "Shelby")
-    val rnd = Random.nextInt(3)
-    hello(names(rnd))
-    bye(names(rnd))
-}
-```
-
-```scala
-objects.runOption {
-  i: Int => i + 10
-}.fold(println("I thought I had an Int in my object graph!"))(i => println(s"Int is $i"))
-```
-
-For further details, see scaladoc for @scaladoc[ProviderMagnet](com.github.pshirshov.izumi.distage.model.providers.ProviderMagnet)
-
-### Multibindings / Set Bindings
+### Set Bindings / Multibindings
 
 Set bindings are useful for implementing event listeners, plugins, hooks, http routes, etc.
 
@@ -219,12 +167,23 @@ DSL.
 
 For example, we can use Set bindings to combine all [http4s](https://http4s.org) routes across the object graph:
 
-```tut:book
+```tut:silent
+// imports
+import cats.implicits._
 import cats.effect._
+import distage._
 import org.http4s._
 import org.http4s.dsl.io._
-import distage._
+import org.http4s.implicits._
+import org.http4s.server.blaze._
 
+import scala.concurrent.ExecutionContext.Implicits.global
+
+implicit val contextShift = IO.contextShift(global)
+implicit val timer = IO.timer(global)
+```
+
+```tut:book
 object HomeRouteModule extends ModuleDef {
   val homeRoute = HttpRoutes.of[IO] { 
     case GET -> Root / "home" => Ok(s"Home page!") 
@@ -246,7 +205,7 @@ object BlogRouteModule extends ModuleDef {
   many[HttpRoutes[IO]]
     .add {
       HttpRoutes.of[IO] { 
-        case GET -> Root / "blog" / post => Ok("Blog post ``$post''!") 
+        case GET -> Root / "blog" / post => Ok(s"Blog post ``$post''!") 
       }
     }
 }
@@ -255,14 +214,6 @@ object BlogRouteModule extends ModuleDef {
 Let's define the Server component that will combine the routes together and produce the `IO` action that will start `http4s` server with the combined routes:
 
 ```tut:book
-import cats.implicits._
-import org.http4s.implicits._
-import org.http4s.server.blaze._
-import scala.concurrent.ExecutionContext.Implicits.global
-
-implicit val contextShift = IO.contextShift(global)
-implicit val timer = IO.timer(global)
-    
 class HttpServer(routes: Set[HttpRoutes[IO]]) {
   val router = routes.toList.foldK.orNotFound
 
@@ -278,34 +229,34 @@ object HttpServerModule extends ModuleDef {
 }
 ```
 
-Now, let's wire all the modules and create that server!
+Now, let's wire all the modules and create the server!
 
-```tut:silent
+```tut:invisible
 // A hack because `tut` REPL fails to create classes via reflection when defined in REPL for some reason..
 object HttpServerModule extends ModuleDef {
   make[HttpServer].from(new HttpServer(_))
 }
 ```
 
-```tut
+```tut:silent
 val finalModule = HomeRouteModule ++ BlogRouteModule ++ HttpServerModule
+
 val objects = Injector().produce(finalModule)
+
 val server = objects.get[HttpServer]
 ```
 
 But does it work?
 
-```tut
-val testRouter = server.router
+```tut:book
+server.router.run(Request[IO](uri = uri("/home"))).flatMap(_.as[String]).unsafeRunSync
 
-testRouter.run(Request[IO](uri = uri("/home"))).flatMap(_.as[String]).unsafeRunSync
-
-testRouter.run(Request[IO](uri = uri("/blog/1"))).flatMap(_.as[String]).unsafeRunSync
+server.router.run(Request[IO](uri = uri("/blog/1"))).flatMap(_.as[String]).unsafeRunSync
 ```
 
 Yep! Great!
 
-For further detail see [Guice wiki on Multibindings](https://github.com/google/guice/wiki/Multibindings).
+See [Guice wiki on Multibindings](https://github.com/google/guice/wiki/Multibindings) for more on the concept.
 
 ### Tagless Final Style
 
@@ -416,7 +367,7 @@ Modules can abstract over arbitrary kinds - use `TagKK` to abstract over bifunct
 class BIOModule[F[_, _]: TagKK] extends ModuleDef 
 ```
 
-Use `Tag.auto.T` to abstract polymorphically over any kind:
+Use `Tag.auto.T` to abstract over any kind:
 
 ```scala
 class MonadTransModule[F[_[_], _]: Tag.auto.T] extends ModuleDef
@@ -431,6 +382,63 @@ class EldritchModule[F[_, _[_, _], _[_[_, _], _], _, _[_[_[_]]]]: Tag.auto.T] ex
 ```
 
 consult @scaladoc[HKTag](com.github.pshirshov.izumi.fundamentals.reflection.WithTags#HKTag) docs for more details
+
+### Function Bindings
+
+To bind to a function instead of constructor use `.from` method in @scaladoc[ModuleDef](com.github.pshirshov.izumi.distage.model.definition.ModuleDef) DSL:
+
+```scala
+import distage._
+
+case class HostPort(host: String, port: Int)
+
+class HttpServer(hostPort: HostPort)
+
+trait HttpServerModule extends ModuleDef {
+  make[HttpServer].from {
+    hostPort: HostPort =>
+      val modifiedPort = hostPort.port + 1000
+      new HttpServer(hostPort.host, modifiedPort)
+  }
+}
+```
+
+To inject named instances or config values, add annotations to lambda arguments' types:
+
+```scala
+trait HostPortModule extends ModuleDef {
+  make[HostPort].named("default").from(HostPort("localhost", 8080))
+  make[HostPort].from {
+    (maybeConfigHostPort: Option[HostPort] @ConfPath("http"),
+     defaultHostPort: HostPort @Id("default")) =>
+      maybeConfigHostPort.getOrElse(defaultHostPort)
+  }
+}
+```
+
+Given a `Locator` we can retrieve instances by type, call methods on them or summon them with a function:
+
+```scala
+import scala.util.Random
+
+val objects: Locator = Injector().produce(???)
+
+objects.run {
+  (hello: Hello, bye: Bye) =>
+    val names = Array("Snow", "Marisa", "Shelby")
+    val rnd = Random.nextInt(3)
+    hello(names(rnd))
+    bye(names(rnd))
+}
+```
+
+```scala
+objects.runOption {
+  i: Int => i + 10
+}.fold(println("I thought I had an Int in my object graph!"))(i => println(s"Int is $i"))
+```
+
+For further details, see scaladoc for @scaladoc[ProviderMagnet](com.github.pshirshov.izumi.distage.model.providers.ProviderMagnet)
 
 ### Config files
 
@@ -1166,9 +1174,9 @@ as such they can't contain garbage by construction.
 
 #### Weak Sets
 
-Sets (aka [Multibindings](#multibindings--set-bindings)) can contain *weak* references. Elements designated as weak won't
-be retained by the [Garbage Collector](#using-garbage-collector) if they're not
-referenced outside of the set.
+[Set bindings](#set-bindings--multibindings) can contain *weak* references. References designated as weak will
+be retained by [Garbage Collector](#using-garbage-collector) _only_ if there are other references to them except the
+set binding itself.
 
 Example:
 
