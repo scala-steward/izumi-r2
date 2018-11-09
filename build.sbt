@@ -409,7 +409,10 @@ lazy val izsbt: Seq[ProjectReference] = Seq(
   sbtIzumi, sbtIdealingua, sbtTests
 )
 
+lazy val allProjectsExceptMicrosite = distage ++ logstage ++ idealingua ++ izsbt
+
 lazy val microsite = inDoc.as.module
+  .dependsOn(allProjectsExceptMicrosite.map(x => x: ClasspathDep[ProjectReference]): _*)
   .enablePlugins(ScalaUnidocPlugin, ParadoxSitePlugin, SitePlugin, GhpagesPlugin, ParadoxMaterialThemePlugin, PreprocessPlugin, TutPlugin)
   .settings(
     skip in publish := true
@@ -456,8 +459,7 @@ lazy val microsite = inDoc.as.module
     , unidocProjectFilter in(ScalaUnidoc, unidoc) := inAnyProject -- inProjects(sbtIzumi, sbtIdealingua, sbtTests, sbtIzumiDeps)
   )
 
-lazy val allProjects = distage ++ logstage ++ idealingua ++ izsbt ++ Seq(microsite : ProjectReference)
-
+lazy val allProjects = allProjectsExceptMicrosite ++ Seq(microsite : ProjectReference)
 
 lazy val `izumi-r2` = inRoot.as
   .root
