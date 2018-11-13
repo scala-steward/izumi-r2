@@ -12,7 +12,6 @@ import scala.util.{Failure, Try}
 class ComponentsLifecycleManager(
                                   components: Set[RoleComponent],
                                   logger: IzLogger,
-
                                 ) {
   private val started = new mutable.ArrayStack[ComponentLifecycle]()
 
