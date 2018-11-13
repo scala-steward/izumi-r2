@@ -3,14 +3,13 @@ package com.github.pshirshov.izumi.fundamentals.typesafe.config
 import java.io.File
 import java.math.BigInteger
 import java.net.{InetAddress, URI, URL}
-import java.time.{Instant, ZoneId, ZoneOffset, _}
+import java.time._
 import java.util.UUID
 import java.util.regex.Pattern
 
 import com.github.pshirshov.izumi.fundamentals.reflection.SafeType0
 import com.typesafe.config._
 
-import scala.concurrent.duration.FiniteDuration
 import scala.reflect.io.Path
 import scala.reflect.runtime.{universe => ru}
 import scala.util.matching.Regex
@@ -39,8 +38,8 @@ object RuntimeConfigReaderCodecs {
       , SafeType0.get[BigInt] -> scalaBigIntReader
       , SafeType0.get[BigDecimal] -> scalaBigDecimalReader
 
-      , SafeType0.get[Duration] -> durationConfigReader
-      , SafeType0.get[FiniteDuration] -> finiteDurationConfigReader
+      , SafeType0.get[scala.concurrent.duration.Duration] -> durationConfigReader
+      , SafeType0.get[scala.concurrent.duration.FiniteDuration] -> finiteDurationConfigReader
 
       , SafeType0.get[Instant] -> instantConfigReader
       , SafeType0.get[ZoneOffset] -> zoneOffsetConfigReader

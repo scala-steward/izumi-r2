@@ -3,7 +3,6 @@ package com.github.pshirshov.izumi.distage.staticinjector
 import com.github.pshirshov.izumi.distage.fixtures.TraitCases.{TraitCase1, TraitCase2, TraitCase4, TraitCase5}
 import com.github.pshirshov.izumi.distage.model.definition.StaticModuleDef
 import org.scalatest.WordSpec
-import com.github.pshirshov.izumi.distage.model.definition.StaticDSL._
 import com.github.pshirshov.izumi.distage.provisioning.AnyConstructor
 import com.github.pshirshov.izumi.distage.model.reflection.universe.RuntimeDIUniverse.TypedRef
 
@@ -139,6 +138,26 @@ class MacroTraitsTest extends WordSpec with MkInjector {
     val instantiated = context.get[TestTrait]
 
     assert(instantiated.rd == Dep().toString)
+  }
+
+  "handle AnyVals" in {
+    import com.github.pshirshov.izumi.distage.fixtures.TraitCases.TraitCase6._
+
+    val definition = new StaticModuleDef {
+      stat[Dep]
+      stat[AnyValDep]
+      stat[TestTrait]
+    }
+
+    val injector = mkInjector()
+    val plan = injector.plan(definition)
+    val context = injector.produce(plan)
+
+    assert(context.get[TestTrait].anyValDep != null)
+
+    // AnyVal reboxing happened
+    assert(context.get[TestTrait].anyValDep ne context.get[AnyValDep].asInstanceOf[AnyRef])
+    assert(context.get[TestTrait].anyValDep.d eq context.get[Dep])
   }
 
   trait Aaa {

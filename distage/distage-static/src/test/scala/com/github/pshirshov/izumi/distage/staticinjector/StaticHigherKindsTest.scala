@@ -1,7 +1,6 @@
 package com.github.pshirshov.izumi.distage.staticinjector
 
 import com.github.pshirshov.izumi.distage.fixtures.HigherKindCases.HigherKindsCase1
-import com.github.pshirshov.izumi.distage.model.definition.StaticDSL._
 import com.github.pshirshov.izumi.distage.model.definition.StaticModuleDef
 import distage.{Id, TagK}
 import org.scalatest.WordSpec

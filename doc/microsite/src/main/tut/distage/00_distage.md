@@ -57,7 +57,7 @@ class HelloByeApp(greeter: Greeter, byer: Byer) {
 
 To actually run the app, we need to declare the real implementations for the `Greeter` and `Byer`. 
 
-```tut:silent
+```tut:book
 import distage.{ModuleDef, Injector}
 
 object HelloByeModule extends ModuleDef {
@@ -100,7 +100,7 @@ val objects = injector.produce(plan)
 val app = objects.get[HelloByeApp]
 ```
 
-```tut
+```tut:book
 app.run()
 ```
 
@@ -114,7 +114,7 @@ the `plan` back to you as a simple datatype. We can look at `HelloByeModule`'s p
 val plan = injector.plan(originalModule)
 ```
 
-```tut
+```tut:book
 plan.render
 ```
 
@@ -125,7 +125,7 @@ but execute the instructions in order - their output is fully determined by the 
 This is obviously great for [debugging](#debugging-introspection-diagnostics-and-hooks)!
 
 In fact, we might as well [verify the plan at compile-time](#compile-time-checks) or [splice equivalent Scala code](#compile-time-instantiation)
-to do the instantiation, without ever running the application. When used in that way,
+to do the instantiation before ever running the application. When used in that way,
 `distage` is a great alternative to compile-time frameworks such as `MacWire` all the while keeping the flexibility to interpret
 at runtime when needed. Said flexibility allows to create additional features, such as [Plugins](#plugins) and 
 [Typesafe Config integration](#config-files) using simple transformations of plans and bindings.
@@ -147,7 +147,7 @@ val caps = HelloByeModule overridenBy new ModuleDef {
 val capsUniverse = injector.produce(caps)
 ```
 
-```tut
+```tut:book
 capsUniverse.get[HelloByeApp].run()
 ```
 
@@ -211,7 +211,7 @@ object BlogRouteModule extends ModuleDef {
 }
 ```
 
-Let's define the Server component that will combine the routes together and produce the `IO` action that will start `http4s` server with the combined routes:
+Let's define a Server component that will combine the routes together and produce the `IO` action starting the `http4s` server with the routes:
 
 ```tut:book
 class HttpServer(routes: Set[HttpRoutes[IO]]) {
@@ -654,13 +654,63 @@ final class AppPluginTest extends WordSpec {
 
 You can participate in this ticket at https://github.com/pshirshov/izumi-r2/issues/51
 
-### Compile-Time Instantiation
+### Auto-Traits
 
 @@@ warning { title='TODO' }
 Sorry, this page is not ready yet
 @@@
 
 ...
+
+### Auto-Factories
+
+`distage` can automatically create `Factory` classes from suitable traits.
+This feature is especially useful for `akka`.
+
+Given a class `ActorFactory`:
+
+```scala
+class UserActor(sessionId: UUID, sessionRepo: SessionRepo)
+
+trait ActorFactory {
+  def createActor(sessionId: UUID): UserActor
+}
+```
+
+And a binding of `ActorFactory` *without* an implementation
+
+```scala
+class ActorModule extends ModuleDef {
+  make[ActorFactory]
+}
+```
+
+`distage` will derive and bind the following implementation for `ActorFactory`:
+
+```scala
+class ActorFactoryImpl(sessionRepo: SessionRepo) extends ActorFactory {
+  override def createActor(sessionId: UUID): UserActor = {
+    new UserActor(sessionId, sessionRepo)
+  }
+}
+```
+
+You can use this feature to concisely provide non-singleton semantics for some of your components.
+
+By default, the factory implementation class will be created automatically at runtime.
+To create factories at compile-time use `distage-static` module.
+
+### Compile-Time Instantiation
+
+@@@ warning { title='TODO' }
+Sorry, this page is not ready yet
+
+Relevant ticket: https://github.com/pshirshov/izumi-r2/issues/453
+@@@
+
+WIP
+
+You can participate in this ticket at https://github.com/pshirshov/izumi-r2/issues/453
 
 ### Inner Classes and Path-Dependent Types
 
@@ -844,52 +894,6 @@ if a class and its dependencies are stateless, and can be replaced by a global `
 However, `distage` does provide helpers to help manage lifecycle, see: [Auto-Sets](#auto-sets-collecting-bindings-by-predicate)
 
 You can participate in this ticket at https://github.com/pshirshov/izumi-r2/issues/331
-
-### Auto-Traits
-
-@@@ warning { title='TODO' }
-Sorry, this page is not ready yet
-@@@
-
-...
-
-### Auto-Factories
-
-`distage` can automatically create `Factory` classes from suitable traits.
-This feature is especially useful for `akka`.
-
-Given a class `ActorFactory`:
-
-```scala
-class UserActor(sessionId: UUID, sessionRepo: SessionRepo)
-
-trait ActorFactory {
-  def createActor(sessionId: UUID): UserActor
-}
-```
-
-And a binding of `ActorFactory` *without* an implementation
-
-```scala
-class ActorModule extends ModuleDef {
-  make[ActorFactory]
-}
-```
-
-`distage` will derive and bind the following implementation for `ActorFactory`:
-
-```scala
-class ActorFactoryImpl(sessionRepo: SessionRepo) extends ActorFactory {
-  override def createActor(sessionId: UUID): UserActor = {
-    new UserActor(sessionId, sessionRepo)
-  }
-}
-```
-
-You can use this feature to concisely provide non-singleton semantics for some of your components.
-
-By default, the factory implementation class will be created automatically at runtime.
-To create factories at compile-time use `distage-static` module.
 
 ### Import Materialization
 
