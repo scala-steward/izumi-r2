@@ -7,8 +7,8 @@ distage Staged Dependency Injection
 `distage` is a pragmatic module system for Scala that combines safety and reliability of pure FP with extreme late binding and flexibility
 of runtime dependency injection frameworks, such as Guice.
 
-`distage` is unopinionated and supports both sides of the 'Scala coin', you can use it with as easily with imperative
-frameworks such as Akka and Play as with [Tagless Final Style](#tagless-final-style) and FP libraries of your choice.
+`distage` is unopinionated and integrates well with both sides of the 'Scala coin', you can use it easily with imperative
+frameworks such as Akka and Play or use it with [Tagless Final Style](#tagless-final-style) and FP libraries of your choice.
 
 More info:
 
@@ -107,7 +107,7 @@ app.run()
 What just happened:
 
 Given a set of bindings, such as `HelloByeModule`, `distage` will look at the dependencies (constructor or function arguments)
-of each implementation and devise a `plan` to satisfy each dependency using the other implementations in that module, it will happily return
+of each implementation and deduce a `plan` to satisfy each dependency using the other implementations in that module, it will happily return
 the `plan` back to you as a simple datatype. We can look at `HelloByeModule`'s plan while we're at it:
 
 ```tut:invisible
@@ -165,10 +165,10 @@ Set bindings are useful for implementing event listeners, plugins, hooks, http r
 To define a Set binding use `.many` and `.add` methods in @scaladoc[ModuleDef](com.github.pshirshov.izumi.distage.model.definition.ModuleDef)
 DSL.
 
-For example, we can use Set bindings to combine all [http4s](https://http4s.org) routes across the object graph:
+For example, we can serve all [http4s](https://http4s.org) routes added in multiple different modules:
 
-```tut:silent
-// imports
+```tut:silent:reset
+// boilerplate
 import cats.implicits._
 import cats.effect._
 import distage._
@@ -185,6 +185,7 @@ implicit val timer = IO.timer(global)
 
 ```tut:book
 object HomeRouteModule extends ModuleDef {
+
   val homeRoute = HttpRoutes.of[IO] { 
     case GET -> Root / "home" => Ok(s"Home page!") 
   }
@@ -194,7 +195,7 @@ object HomeRouteModule extends ModuleDef {
 }
 ```
 
-We declared an open `Set` of http routes via the `.many` method and added one instance into it.
+We've used `many` method to declare an open `Set` of http routes and then added one HTTP route into it.
 When module definitions are combined, `Sets` for the same binding will be merged together.
 You can summon a Set Bindings by summoning a scala `Set`, as in `Set[HttpRoutes[IO]]`.
 
@@ -202,26 +203,29 @@ Let's define a new module with another route:
 
 ```tut:book
 object BlogRouteModule extends ModuleDef {
+
+  val blogRoute = HttpRoutes.of[IO] { 
+    case GET -> Root / "blog" / post => Ok(s"Blog post ``$post''!") 
+  }
+  
   many[HttpRoutes[IO]]
-    .add {
-      HttpRoutes.of[IO] { 
-        case GET -> Root / "blog" / post => Ok(s"Blog post ``$post''!") 
-      }
-    }
+    .add(blogRoute)
 }
 ```
 
-Let's define a Server component that will combine the routes together and produce the `IO` action starting the `http4s` server with the routes:
+Now it's the time to define a `Server` component to serve all the routes we've got now:
 
 ```tut:book
 class HttpServer(routes: Set[HttpRoutes[IO]]) {
-  val router = routes.toList.foldK.orNotFound
+  
+  val router: HttpApp[IO] = 
+    routes.toList.foldK.orNotFound
 
-  val serve: IO[Unit] = 
+  val serverResource = 
     BlazeServerBuilder[IO]
       .bindHttp(8080, "localhost")
       .withHttpApp(router)
-      .resource.use(_ => IO.never)
+      .resource
 }
 
 object HttpServerModule extends ModuleDef {
@@ -232,14 +236,18 @@ object HttpServerModule extends ModuleDef {
 Now, let's wire all the modules and create the server!
 
 ```tut:invisible
-// A hack because `tut` REPL fails to create classes via reflection when defined in REPL for some reason..
+// A hack because `tut` REPL fails to create classes via reflection when classes are defined in REPL...
 object HttpServerModule extends ModuleDef {
   make[HttpServer].from(new HttpServer(_))
 }
 ```
 
 ```tut:silent
-val finalModule = HomeRouteModule ++ BlogRouteModule ++ HttpServerModule
+val finalModule = Seq(
+    HomeRouteModule,
+    BlogRouteModule,
+    HttpServerModule,
+  ).merge
 
 val objects = Injector().produce(finalModule)
 
@@ -249,12 +257,15 @@ val server = objects.get[HttpServer]
 But does it work?
 
 ```tut:book
-server.router.run(Request[IO](uri = uri("/home"))).flatMap(_.as[String]).unsafeRunSync
-
-server.router.run(Request[IO](uri = uri("/blog/1"))).flatMap(_.as[String]).unsafeRunSync
+server.router.run(Request(uri = uri("/home"))).unsafeRunSync
 ```
 
-Yep! Great!
+```tut:book
+server.router.run(Request(uri = uri("/blog/1"))).
+  flatMap(_.as[String]).unsafeRunSync
+```
+
+Great!
 
 See [Guice wiki on Multibindings](https://github.com/google/guice/wiki/Multibindings) for more on the concept.
 
@@ -263,32 +274,37 @@ See [Guice wiki on Multibindings](https://github.com/google/guice/wiki/Multibind
 distage works well with tagless final style. As an example, let's take [freestyle's tagless example](http://frees.io/docs/core/handlers/#tagless-interpretation)
 and make it safer and more flexible by replacing dependencies on global implementations from `import`'s with explicit modules.
 
+Tagless Final is a pattern of definition allowing us to defnie pure programs
+
+- more at bwhatever article
+
+If you're not familiar with tagless final you can skip this section
+
+these are the benefits distage brings as TF driver compared to implicits
+
+- explicit easy overrides
+- <s>easy effectful instantiation and resource management</s>
+- multiple different implementations via Id
+- by contrast, implicit domain will be consistent
+
 First, the program we want to write:
 
-```scala
+```tut:book
 import cats._
 import cats.implicits._
-import cats.tagless._
-
 import distage._
 
-class Program[F[_]: TagK: Monad] extends ModuleDef {
-  make[TaglessProgram[F]]
-
-  addImplicit[Monad[F]]
-}
-
-@finalAlg
 trait Validation[F[_]] {
   def minSize(s: String, n: Int): F[Boolean]
   def hasNumber(s: String): F[Boolean]
 }
+def Validation[F[_]: Validation]: Validation[F] = implicitly
 
-@finalAlg
 trait Interaction[F[_]] {
   def tell(msg: String): F[Unit]
   def ask(prompt: String): F[String]
 }
+def Interaction[F[_]: Interaction]: Interaction[F] = implicitly
 
 class TaglessProgram[F[_]: Monad: Validation: Interaction] {
   def program: F[Unit] = for {
@@ -300,6 +316,12 @@ class TaglessProgram[F[_]: Monad: Validation: Interaction] {
                     Interaction[F].tell(s"$userInput is not valid")
   } yield ()
 }
+
+class Program[F[_]: TagK: Monad] extends ModuleDef {
+  make[TaglessProgram[F]]
+
+  addImplicit[Monad[F]]
+}
 ```
 
 @scaladoc[TagK](com.github.pshirshov.izumi.fundamentals.reflection.WithTags#TagK) is distage's analogue of `TypeTag` for higher-kinded types such as `F[_]`,
@@ -309,76 +331,87 @@ Use @scaladoc[Tag](com.github.pshirshov.izumi.fundamentals.reflection.WithTags#T
 
 Interpreters:
 
-```scala
-import scala.util.Try
+```tut:invisible
+class Program[F[_]: TagK: Monad] extends ModuleDef {
+  make[TaglessProgram[F]].from(new TaglessProgram()(_: Monad[F], _: Validation[F], _: Interaction[F]))
 
-object TryInterpreters extends ModuleDef {
-  make[Validation.Handler[Try]].from(tryValidationHandler)
-  make[Interaction.Handler[Try]].from(tryInteractionHandler)
-  
-  def tryValidationHandler = new Validation.Handler[Try] {
-    override def minSize(s: String, n: Int): Try[Boolean] = Try(s.size >= n)
-    override def hasNumber(s: String): Try[Boolean] = Try(s.exists(c => "0123456789".contains(c)))
-  }
-  
-  def tryInteractionHandler = new Interaction.Handler[Try] {
-    override def tell(s: String): Try[Unit] = Try(println(s))
-    override def ask(s: String): Try[String] = Try("This could have been user input 1")
-  }
-}
-
-object App extends App {
-  import cats.instances.try_._
-  // Combine modules into a full program
-  val TryProgram: Module = new Program[Try] ++ TryInterpreters
-  // run
-  Injector().produce(TryProgram).get[TaglessProgram[Try]]
-    .program
+  addImplicit[Monad[F]]
 }
 ```
 
-The program module is polymorphic and abstracted from its eventual monad, we can easily parameterize it with a different monad:
+```tut:book
+import scala.util.Try
+import cats.instances.all._
 
-```scala
-import cats.effect.IO
+val tryValidation = new Validation[Try] {
+  override def minSize(s: String, n: Int): Try[Boolean] = Try(s.size >= n)
+  override def hasNumber(s: String): Try[Boolean] = Try(s.exists(c => "0123456789".contains(c)))
+}
+  
+val tryInteraction = new Interaction[Try] {
+  override def tell(s: String): Try[Unit] = Try(println(s))
+  override def ask(s: String): Try[String] = Try("This could have been user input 1")
+}
+
+object TryInterpreters extends ModuleDef {
+  make[Validation[Try]].from(tryValidation)
+  make[Interaction[Try]].from(tryInteraction)
+}
+
+// combine all modules
+val TryProgram = new Program[Try] ++ TryInterpreters
+
+// create object graph
+val objects = Injector().produce(TryProgram)
+
+// run
+objects.get[TaglessProgram[Try]].program
+```
+
+The program module is polymorphic over its eventual monad, we can easily parameterize it by a different monad:
+
+```tut:book
+import cats.effect._
 
 def IOInterpreters = ???
-val IOProgram = new Program[IO] ++ IOInterpreters
+def IOProgram = new Program[IO] ++ IOInterpreters
 ```
 
 We can leave it polymorphic as well: 
 
-```scala
-import cats.effect.Sync
-
+```tut:book
 def SyncInterpreters[F[_]: Sync] = ???
-def SyncProgram[F[_]: Sync] = new Program[F] ++ SyncInterpreters[F]
+def SyncProgram[F[_]: TagK: Sync] = new Program[F] ++ SyncInterpreters[F]
 ```
 
 Or choose different interpreters at runtime:
 
-```scala
-def chooseInterpreters(default: Boolean) = new Program[Try] ++ (if (default) TryInterpreters else DifferentTryInterpreters)
+```tut:book
+def DifferentTryInterpreters = ???
+def chooseInterpreters(default: Boolean) = {
+  val interpreters = if (default) TryInterpreters else DifferentTryInterpreters
+  new Program[Try] ++ interpreters
+}
 ```
 
-Modules can abstract over arbitrary kinds - use `TagKK` to abstract over bifunctors:
+Modules can be polymorphic over arbitrary kinds - use `TagKK` to abstract over bifunctors:
 
-```scala
-class BIOModule[F[_, _]: TagKK] extends ModuleDef 
+```tut:book
+class BifunctorIOModule[F[_, _]: TagKK] extends ModuleDef 
 ```
 
-Use `Tag.auto.T` to abstract over any kind:
+Or use `Tag.auto.T` to abstract over any kind:
 
-```scala
+```tut:book
 class MonadTransModule[F[_[_], _]: Tag.auto.T] extends ModuleDef
 ```
 
-```scala
+```tut:book
 class TrifunctorModule[F[_, _, _]: Tag.auto.T] extends ModuleDef
 ```
 
-```scala
-class EldritchModule[F[_, _[_, _], _[_[_, _], _], _, _[_[_[_]]]]: Tag.auto.T] extends ModuleDef
+```tut:book
+class EldritchModule[F[+_, -_[_, _], _[_[_, _], _], _, _[_[_]]]: Tag.auto.T] extends ModuleDef
 ```
 
 consult @scaladoc[HKTag](com.github.pshirshov.izumi.fundamentals.reflection.WithTags#HKTag) docs for more details
@@ -387,26 +420,28 @@ consult @scaladoc[HKTag](com.github.pshirshov.izumi.fundamentals.reflection.With
 
 To bind to a function instead of constructor use `.from` method in @scaladoc[ModuleDef](com.github.pshirshov.izumi.distage.model.definition.ModuleDef) DSL:
 
-```scala
+```tut:book:reset
 import distage._
 
 case class HostPort(host: String, port: Int)
 
 class HttpServer(hostPort: HostPort)
 
-trait HttpServerModule extends ModuleDef {
+object HttpServerModule extends ModuleDef {
   make[HttpServer].from {
     hostPort: HostPort =>
       val modifiedPort = hostPort.port + 1000
-      new HttpServer(hostPort.host, modifiedPort)
+      new HttpServer(hostPort.copy(port = modifiedPort))
   }
 }
 ```
 
 To inject named instances or config values, add annotations to lambda arguments' types:
 
-```scala
-trait HostPortModule extends ModuleDef {
+```tut:book
+import distage.config._
+
+object HostPortModule extends ModuleDef {
   make[HostPort].named("default").from(HostPort("localhost", 8080))
   make[HostPort].from {
     (maybeConfigHostPort: Option[HostPort] @ConfPath("http"),
@@ -418,27 +453,44 @@ trait HostPortModule extends ModuleDef {
 
 Given a `Locator` we can retrieve instances by type, call methods on them or summon them with a function:
 
-```scala
+```tut:invisible
+class Hello {
+  def apply(name: String): Unit = println(s"Hello $name")
+}
+
+class Bye {
+  def apply(name: String): Unit = println(s"Bye $name")
+}
+
+object HelloByeModule extends ModuleDef {
+  make[Hello].from(new Hello)
+  make[Bye].from(new Bye)
+}
+```
+
+```tut:book
 import scala.util.Random
 
-val objects: Locator = Injector().produce(???)
+val objects = Injector().produce(HelloByeModule)
 
 objects.run {
   (hello: Hello, bye: Bye) =>
     val names = Array("Snow", "Marisa", "Shelby")
     val rnd = Random.nextInt(3)
+    println(s"Random index: $rnd")
     hello(names(rnd))
     bye(names(rnd))
 }
 ```
 
-```scala
-objects.runOption {
-  i: Int => i + 10
-}.fold(println("I thought I had an Int in my object graph!"))(i => println(s"Int is $i"))
+```tut:book
+objects.runOption { i: Int => i + 10 } match {
+  case None => println("I thought I had an Int in my object graph!")
+  case Some(i) => println(s"Int is $i")
+}
 ```
 
-For further details, see scaladoc for @scaladoc[ProviderMagnet](com.github.pshirshov.izumi.distage.model.providers.ProviderMagnet)
+For further details, see @scaladoc[ProviderMagnet](com.github.pshirshov.izumi.distage.model.providers.ProviderMagnet)
 
 ### Config files
 
@@ -665,7 +717,7 @@ Sorry, this page is not ready yet
 ### Auto-Factories
 
 `distage` can automatically create `Factory` classes from suitable traits.
-This feature is especially useful for `akka`.
+This feature is especially useful for `Akka`.
 
 Given a class `ActorFactory`:
 
