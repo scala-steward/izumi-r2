@@ -16,7 +16,7 @@ if [[ "$NIXIFY" == 1 && -z "${IN_NIX_SHELL+x}" ]]; then
       --ignore-environment \
       --keep SONATYPE_SECRET \
       --keep SCALA_VERSION \
-      --keep JDK_VERSION \
+      --keep JAVA_VERSION \
       --keep CI_BRANCH \
       --keep CI_COMMIT \
       --keep CI_BRANCH_TAG \
