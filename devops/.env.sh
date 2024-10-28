@@ -6,7 +6,6 @@ set -x
 export _JAVA_OPTIONS="-Xmx4000M -XX:ReservedCodeCacheSize=384M -XX:NonProfiledCodeHeapSize=256M -XX:MaxMetaspaceSize=1024M"
 
 
-export SCALA211=$(cat project/Deps.sc | grep 'val scala211 ' |  sed -r 's/.*\"(.*)\".**/\1/')
 export SCALA212=$(cat project/Deps.sc | grep 'val scala212 ' |  sed -r 's/.*\"(.*)\".**/\1/')
 export SCALA213=$(cat project/Deps.sc | grep 'val scala213 ' |  sed -r 's/.*\"(.*)\".**/\1/')
 export SCALA3=$(cat project/Deps.sc | grep 'val scala300 ' |  sed -r 's/.*\"(.*)\".**/\1/')
