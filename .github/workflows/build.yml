@@ -27,7 +27,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        java: [ '11', '17' ]
+        java: [ '11', '17', '22' ]
         scala: [ '2.12', '2.13', '3' ]
     steps:
       - uses: 7mind/github-env@minimal
@@ -76,7 +76,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        java: [ '11', '17' ]
+        java: [ '11', '17', '22' ]
         scala: [ '2.12', '2.13', '3' ]
     steps:
       - uses: 7mind/github-env@minimal
@@ -119,7 +119,8 @@ jobs:
       matrix:
         java: [ '17' ]
         scala: [ '2.13']
-    needs: [ 'build-jvm', 'build-js', 'test-site', 'checksecret' ]
+#    needs: [ 'build-jvm', 'build-js', 'test-site', 'checksecret' ]
+    needs: [ 'checksecret' ]
     if: needs.checksecret.outputs.HAVE_SECRETS == 'true'
     steps:
       - uses: 7mind/github-env@minimal
@@ -145,7 +146,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        java: [ '11' ]
+        java: [ '17' ]
         scala: [ '2.12', '2.13', '3']
     steps:
       - uses: 7mind/github-env@minimal

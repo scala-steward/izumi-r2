@@ -28,6 +28,7 @@
             nodePackages.npm
 
             gitMinimal
+            openssh
           ];
 
           shellHook = ''
