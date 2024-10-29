@@ -67,8 +67,7 @@ jobs:
           # files: cobertura.xml,scoverage.xml
           # flags: unittests
       - name: Upload dependency graph
-        uses: scalacenter/sbt-dependency-submission@ab086b50c947c9774b70f39fc7f6e20ca2706c91
-        if: github.ref == 'develop'
+        uses: scalacenter/sbt-dependency-submission@v2
 
   build-js:
     runs-on: ubuntu-latest
