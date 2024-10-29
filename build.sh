@@ -3,8 +3,9 @@
 set -e
 self="$(realpath "$0")"
 path="$(dirname "$self")"
-set -x
+echo "Working in $path"
 cd "$path"
+export LANG="C.UTF-8"
 
 function nixify() {
   read -r -a args <<< "$(grep -v '^\s*$' .keep.env | sed "s/^/--keep /;s/$/ /" | tr '\n' ' ')"
