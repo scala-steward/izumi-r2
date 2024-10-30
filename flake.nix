@@ -29,6 +29,8 @@
 
             gitMinimal
             openssh
+
+            docker
           ];
 
           shellHook = ''

@@ -11,3 +11,5 @@ sbt -batch -no-colors -v \
   "$VERSION_COMMAND Test/compile" \
   "$VERSION_COMMAND test" \
   "$VERSION_COMMAND coverageReport"
+
+docker rm $(docker ps -aq) || true

@@ -21,13 +21,36 @@ jobs:
         run: |
           echo "HAVE_SECRETS=${{ env.TOKEN_BITWARDEN_SM != '' }}" >> $GITHUB_OUTPUT
 
-  wtf:
-    runs-on: self-hosted
-    steps:
-      - uses: 7mind/github-env@minimal
-      - run: |
-          env
-          docker run hello-world
+#  wtf:
+#    runs-on: self-hosted
+#    steps:
+#      - uses: 7mind/github-env@minimal
+#      - run: |
+#          set -x
+#          set -e
+#          pwd
+#          ls -la "$(pwd)"
+#          rm -rf "$(pwd)/test"
+#          #mount
+#          docker ps -a
+#          docker rm $(docker ps -aq) || true
+#          docker run -v "$(pwd):/test:z" --rm --entrypoint=/bin/bash -t ubuntu -c "rm -rf /test/test"
+#          docker run -v "$(pwd):/test:z" --rm --entrypoint=/bin/bash -t ubuntu -c "ls -la /test"
+#
+#  test-selfhosted:
+#    runs-on: self-hosted
+#    strategy:
+#      fail-fast: false
+#      matrix:
+#        java: [ '22' ]
+#        scala: [ '2.13']
+#    steps:
+#      - uses: 7mind/github-env@minimal
+#      - name: Build and Test
+#        env:
+#          SCALA_VERSION: ${{ matrix.scala }}
+#          JAVA_VERSION: ${{ matrix.java }}
+#        run: ./build.sh nix gen test
 
   build-jvm:
     runs-on: ubuntu-latest
