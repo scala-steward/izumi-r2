@@ -18,7 +18,7 @@ object AppFailureHandler {
   }
 
   object NullHandler extends AppFailureHandler {
-    override def onError(t: Throwable): Unit = {
+    override def onError(t: Throwable): Nothing = {
       rethrow(t)
     }
   }
@@ -36,12 +36,14 @@ object AppFailureHandler {
   private def report(t: Throwable): Unit = {
     t match {
       case d: ProvisioningException =>
-        d.getSuppressed.toList.headOption match {
-          case Some(d: DIAppBootstrapException) =>
+        d.getSuppressed.toList match {
+          case (d: DIAppBootstrapException) :: Nil=>
             System.err.println(d.getMessage)
-          case _ => // JVM will print the exception regardless
+          case _ =>
+            d.printStackTrace()
         }
       case _ =>
+        t.printStackTrace()
     }
   }
 
