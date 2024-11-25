@@ -74,7 +74,7 @@ object PlanInterpreter {
       new ProvisioningException(
         s"""Interpreter stopped; out of $ccTotal operations: $ccFailed failed, $ccDone succeeded, $ccPending ignored
            |$repr
-           |""".stripMargin,
+           |""".stripMargin
       ).addAllSuppressed(allExceptions)
     }
   }
@@ -96,7 +96,12 @@ object PlanInterpreter {
         failure match {
           case ProvisioningFailure.AggregateFailure(_, failures, _) =>
             def stackTrace(exception: Throwable): String = {
-              if (fullStackTraces) exception.stacktraceString else exception.getMessage
+              exception match {
+                case nestedProvisioning: ProvisioningException =>
+                  nestedProvisioning.getMessage
+                case _ =>
+                  if (fullStackTraces) exception.stacktraceString else exception.getMessage
+              }
             }
 
             val messages = failures

@@ -9,13 +9,14 @@ trait AppFailureHandler {
 
 object AppFailureHandler {
 
-  object TerminatingHandler extends AppFailureHandler {
+  open class TerminatingHandler(sysExit: Int => Unit) extends AppFailureHandler {
     override def onError(t: Throwable): Nothing = {
       report(t)
-      System.exit(1)
+      sysExit(1)
       rethrow(t)
     }
   }
+  object TerminatingHandler extends TerminatingHandler(sysExit = System.exit)
 
   object NullHandler extends AppFailureHandler {
     override def onError(t: Throwable): Nothing = {
@@ -25,9 +26,8 @@ object AppFailureHandler {
 
   private def rethrow(t: Throwable): Nothing = {
     t match {
-      case d: ProvisioningException =>
-        // here we remove suppressed exceptions to make output more readable
-        throw new ProvisioningException(d.getMessage, captureStackTrace = false)
+      case p: ProvisioningException =>
+        throw formatProvisioningException(p)
       case o =>
         throw o
     }
@@ -35,16 +35,21 @@ object AppFailureHandler {
 
   private def report(t: Throwable): Unit = {
     t match {
-      case d: ProvisioningException =>
-        d.getSuppressed.toList match {
-          case (d: DIAppBootstrapException) :: Nil=>
+      case p: ProvisioningException =>
+        p.getSuppressed.toList match {
+          case (d: DIAppBootstrapException) :: Nil =>
             System.err.println(d.getMessage)
           case _ =>
-            d.printStackTrace()
+            formatProvisioningException(p).printStackTrace()
         }
       case _ =>
         t.printStackTrace()
     }
+  }
+
+  private def formatProvisioningException(p: ProvisioningException): ProvisioningException = {
+    // here we remove suppressed exceptions to make output more readable (ProvisioningException already includes other exceptions' stacktraces in getMessage)
+    new ProvisioningException(p.getMessage, captureStackTrace = false)
   }
 
 }

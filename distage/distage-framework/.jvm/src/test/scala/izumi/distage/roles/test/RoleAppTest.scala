@@ -10,6 +10,7 @@ import izumi.distage.framework.config.PlanningOptions
 import izumi.distage.framework.services.RoleAppPlanner
 import izumi.distage.model.PlannerInput
 import izumi.distage.model.definition.{Activation, BootstrapModule, Lifecycle}
+import izumi.distage.model.exceptions.runtime.ProvisioningException
 import izumi.distage.model.provisioning.IntegrationCheck
 import izumi.distage.modules.DefaultModule
 import izumi.distage.plugins.{PluginBase, PluginConfig}
@@ -23,7 +24,9 @@ import izumi.logstage.api.IzLogger
 import izumi.logstage.api.logger.LogSink
 import org.scalatest.wordspec.AnyWordSpec
 
-import java.io.File
+import java.io.{File, OutputStream, PrintStream}
+import java.nio.{BufferOverflowException, ByteBuffer}
+import java.nio.charset.StandardCharsets
 import java.nio.charset.StandardCharsets.UTF_8
 import java.nio.file.{Files, Paths}
 import java.util.UUID
@@ -568,6 +571,35 @@ class RoleAppTest extends AnyWordSpec with WithProperties {
 
     "read config in bootstrap plugins" in {
       Fixture3.TestRoleAppMain.main(Array(":fixture3"))
+    }
+
+    "TerminatingHandler reports error when exiting if an exception interrupts provisioning" in {
+      val oldErr = System.err
+      val errBuf = ByteBuffer.allocate(10 * 1024 * 1024)
+      val interceptErr = new PrintStream(
+        new OutputStream {
+          override def write(b: Int): Unit = {
+            oldErr.write(b)
+            try errBuf.put(b.toByte)
+            catch { case _: BufferOverflowException => () }
+            ()
+          }
+        },
+        true,
+      )
+      try {
+        System.setErr(interceptErr)
+        intercept[ProvisioningException] {
+          Fixture3.TestRoleAppMain.main(Array("--ignore-all-reference-configs", ":fixture3"))
+        }
+      } finally {
+        System.setErr(oldErr)
+      }
+      errBuf.flip()
+      val errString = new String(errBuf.array(), errBuf.arrayOffset(), errBuf.limit(), StandardCharsets.UTF_8)
+      assert(errString.contains("""Couldn't read configuration at path="basicConfig""""))
+      // error appears only once
+      assert(errString.indexOf("""Couldn't read configuration at path="basicConfig"""") == errString.lastIndexOf("""Couldn't read configuration at path="basicConfig""""))
     }
 
     "LogIO2 binding is available in LauncherBIO for ZIO & MonixBIO" in {
