@@ -325,8 +325,8 @@ class RoleAppTest extends AnyWordSpec with WithProperties {
       assert(role0CfgMinParsed.hasPath("genericservice"))
       assert(role0CfgMinParsed.hasPath("testservice.mapList"))
       val l = role0CfgMinParsed.getList("testservice.mapList")
-      assert(l.get(0).asInstanceOf[ConfigObject].unwrapped().asScala.toMap == Map("a" -> 1))
-      assert(l.get(1).asInstanceOf[ConfigObject].unwrapped().asScala.toMap == Map("b" -> 2, "c" -> 3))
+      assert(l.get(0).asInstanceOf[ConfigObject].unwrapped().asScala.toMap == Map[String, Integer]("a" -> 1))
+      assert(l.get(1).asInstanceOf[ConfigObject].unwrapped().asScala.toMap == Map[String, Integer]("b" -> 2, "c" -> 3))
 
       assert(role0CfgMinParsed.hasPath("genericservice.genericField"))
       assert(role0CfgMinParsed.hasPath("genericservice.addedField"))
