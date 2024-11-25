@@ -43,6 +43,7 @@ object Fixture {
     explicitInt: Int,
     systemPropInt: Int,
     systemPropList: List[Int],
+    mapList: List[Map[String, Int]],
     a: A,
   )
 

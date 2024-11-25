@@ -4,7 +4,7 @@ import cats.effect.IO
 import cats.effect.unsafe.IORuntime
 import com.github.pshirshov.test.plugins.{StaticTestMainLogIO2, StaticTestRole}
 import com.github.pshirshov.test3.plugins.Fixture3
-import com.typesafe.config.ConfigFactory
+import com.typesafe.config.{ConfigFactory, ConfigObject}
 import distage.{DIKey, Injector, Locator, LocatorRef}
 import izumi.distage.framework.config.PlanningOptions
 import izumi.distage.framework.services.RoleAppPlanner
@@ -323,6 +323,10 @@ class RoleAppTest extends AnyWordSpec with WithProperties {
       assert(role0CfgMinParsed.hasPath("testservice2"))
       assert(role0CfgMinParsed.hasPath("testservice"))
       assert(role0CfgMinParsed.hasPath("genericservice"))
+      assert(role0CfgMinParsed.hasPath("testservice.mapList"))
+      val l = role0CfgMinParsed.getList("testservice.mapList")
+      assert(l.get(0).asInstanceOf[ConfigObject].unwrapped().asScala.toMap == Map("a" -> 1))
+      assert(l.get(1).asInstanceOf[ConfigObject].unwrapped().asScala.toMap == Map("b" -> 2, "c" -> 3))
 
       assert(role0CfgMinParsed.hasPath("genericservice.genericField"))
       assert(role0CfgMinParsed.hasPath("genericservice.addedField"))
