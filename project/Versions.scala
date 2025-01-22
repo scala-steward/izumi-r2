@@ -10,7 +10,7 @@ object V {
   val scalatest = "3.2.19"
 
   val cats = "2.12.0"
-  val cats_effect = "3.5.4"
+  val cats_effect = "3.5.5"
 
   val discipline = "1.7.0"
   val discipline_scalatest = "2.3.0"
@@ -36,7 +36,7 @@ object V {
   val typesafe_config = "1.4.0"
 
   // good to drop - java
-  val bytebuddy = "1.15.4"
+  val bytebuddy = "1.15.7"
   val docker_java = "3.4.0"
 
   // microsite-only

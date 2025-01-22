@@ -86,7 +86,7 @@ trait DIConfigReader[A] extends AbstractDIConfigReader[A] {
     Try(t).flatten match {
       case Failure(exception) =>
         throw new DIConfigReadException(
-          s"""Couldn't read configuration type at path="$path" as type `${Tag[T].tag}` due to error:
+          s"""Couldn't read configuration at path="$path" as type `${Tag[T].tag}` due to error:
              |
              |- ${exception.getMessage}
              |
