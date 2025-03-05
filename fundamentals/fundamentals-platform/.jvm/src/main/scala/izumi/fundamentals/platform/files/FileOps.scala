@@ -1,5 +1,7 @@
 package izumi.fundamentals.platform.files
 
+import izumi.fundamentals.platform.language.Quirks.Discarder
+
 import java.io.File
 import java.nio.charset.StandardCharsets
 import java.nio.file.{Files, Path, Paths}
@@ -19,7 +21,7 @@ trait FileOps {
   }
 
   def writeUtfString(file: Path, string: String): Unit = {
-    Files.write(file, string.getBytes(StandardCharsets.UTF_8))
+    Files.write(file, string.getBytes(StandardCharsets.UTF_8)).discard()
   }
 
   def writeUtfString(file: File, string: String): Unit = {
