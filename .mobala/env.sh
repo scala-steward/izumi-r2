@@ -38,6 +38,22 @@ export _JAVA_OPTIONS="
   -XX:MaxMetaspaceSize=1024M
 "
 
+function validate_publishing() {
+  # Disallow if this is a pull‑request build
+  if [[ "$CI_PULL_REQUEST" == "true" ]]; then
+    echo "Publishing not allowed on P/Rs"
+    return 1
+  fi
+
+  # Disallow if we're neither on develop nor on a tagged release (v*)
+  if [[ "$CI_BRANCH" != "develop" && ! "$CI_BRANCH_TAG" =~ ^v ]]; then
+    echo "Publishing not allowed (CI_BRANCH=$CI_BRANCH, CI_BRANCH_TAG=$CI_BRANCH_TAG)"
+    return 1
+  fi
+
+  return 0
+}
+
 #------------------------------------------------------------------------------------------
 # Tweak JAVA_OPTIONS
 export _JAVA_OPTIONS="${_JAVA_OPTIONS:-""}"

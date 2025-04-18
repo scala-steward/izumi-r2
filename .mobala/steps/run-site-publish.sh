@@ -3,7 +3,7 @@
 set -euo pipefail
 
 function run-site-publish() {
-  source ./devops/.validate-publishing.sh
+  validate_publishing || exit 0
   
   sbt -batch -no-colors -v \
     --java-home "$JAVA_HOME" \
