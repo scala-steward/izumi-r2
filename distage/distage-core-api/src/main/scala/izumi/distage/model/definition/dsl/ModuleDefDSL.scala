@@ -697,7 +697,7 @@ object ModuleDefDSL {
     }
 
     def named[I: IdContract](name: Option[I]): MakeNamedDSL[T] = {
-      name.fold(new MakeNamedDSL[T](mutableState, key))(name => addOp(SetId(name))(new MakeNamedDSL[T](_, key.named(name))))
+      name.fold(new MakeNamedDSL[T](mutableState, key))(n => addOp(SetId(n))(new MakeNamedDSL[T](_, key.named(n))))
     }
 
     def namedByImpl: MakeNamedDSL[T] = {
