@@ -96,7 +96,7 @@ class SyntaxTest extends AnyWordSpec {
     import izumi.functional.bio.IO2
 
     class X[F[+_, +_]: IO2] {
-      def hello = IO2(println("hello world!"))
+      def hello: F[Throwable, Unit] = IO2[F, Unit](println("hello world!"))
     }
 
     assert(new X[zio.IO].hello != null)
@@ -245,7 +245,7 @@ class SyntaxTest extends AnyWordSpec {
     def yy[F[+_, +_]: Error2]: F[Option[Throwable], Unit] = {
       // Scala 3 Workaround
       import izumi.functional.bio.WithFilter
-      implicit val withFilterScala3Workaround: WithFilter[Option[Throwable]] = WithFilter.WithFilterOption(WithFilter.WithFilterNoSuchElementException)
+      implicit val withFilterScala3Workaround: WithFilter[Option[Throwable]] = WithFilter.WithFilterOption(using WithFilter.WithFilterNoSuchElementException)
       val _ = withFilterScala3Workaround
       // Scala 3 Workaround
 

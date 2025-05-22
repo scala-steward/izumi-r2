@@ -379,8 +379,8 @@ private[quasi] sealed class QuasiPrimitivesFromCats[F[_]](F: cats.effect.kernel.
     QuasiRef.fromMaybeSuspend(a)(Morphism1(f => F.delay(f())))
   }
 
-  override final def traverse[A, B](l: Iterable[A])(f: A => F[B]): F[List[B]] = cats.instances.list.catsStdInstancesForList.traverse(l.toList)(f)(F)
-  override final def traverse_[A](l: Iterable[A])(f: A => F[Unit]): F[Unit] = cats.instances.list.catsStdInstancesForList.traverse_(l.toList)(f)(F)
+  override final def traverse[A, B](l: Iterable[A])(f: A => F[B]): F[List[B]] = cats.instances.list.catsStdInstancesForList.traverse(l.toList)(f)(using F)
+  override final def traverse_[A](l: Iterable[A])(f: A => F[Unit]): F[Unit] = cats.instances.list.catsStdInstancesForList.traverse_(l.toList)(f)(using F)
 }
 
 /**
@@ -434,8 +434,8 @@ private[quasi] sealed trait LowPriorityQuasiApplicativeInstances1 {
       override def pure[A](a: A): F[A] = F.pure(a)
       override def map[A, B](fa: F[A])(f: A => B): F[B] = F.map(fa)(f)
       override def map2[A, B, C](fa: F[A], fb: => F[B])(f: (A, B) => C): F[C] = F.map2(fa, fb)(f)
-      override def traverse[A, B](l: Iterable[A])(f: A => F[B]): F[List[B]] = cats.instances.list.catsStdInstancesForList.traverse(l.toList)(f)(F)
-      override def traverse_[A](l: Iterable[A])(f: A => F[Unit]): F[Unit] = cats.instances.list.catsStdInstancesForList.traverse_(l.toList)(f)(F)
+      override def traverse[A, B](l: Iterable[A])(f: A => F[B]): F[List[B]] = cats.instances.list.catsStdInstancesForList.traverse(l.toList)(f)(using F)
+      override def traverse_[A](l: Iterable[A])(f: A => F[Unit]): F[Unit] = cats.instances.list.catsStdInstancesForList.traverse_(l.toList)(f)(using F)
     }
   }
 }

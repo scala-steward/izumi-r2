@@ -946,8 +946,8 @@ private[izumi] sealed trait LifecycleInstances extends LifecycleCatsInstances {
   implicit final def monad2ForLifecycle[F[+_, +_]: Functor2](implicit P: QuasiPrimitives[F[Any, +_]]): Monad2[Lifecycle2[F, +_, +_]] =
     new Monad2[Lifecycle2[F, +_, +_]] {
       override def map[E, A, B](r: Lifecycle[F[E, _], A])(f: A => B): Lifecycle[F[E, _], B] = r.map(f)
-      override def flatMap[E, A, B](r: Lifecycle2[F, E, A])(f: A => Lifecycle2[F, E, B]): Lifecycle2[F, E, B] = r.flatMap(f)(P.asInstanceOf[QuasiPrimitives[F[E, +_]]])
-      override def pure[A](a: A): Lifecycle2[F, Nothing, A] = Lifecycle.pure[F[Nothing, _]](a)(P.asInstanceOf[QuasiPrimitives[F[Nothing, +_]]])
+      override def flatMap[E, A, B](r: Lifecycle2[F, E, A])(f: A => Lifecycle2[F, E, B]): Lifecycle2[F, E, B] = r.flatMap(f)(using P.asInstanceOf[QuasiPrimitives[F[E, +_]]])
+      override def pure[A](a: A): Lifecycle2[F, Nothing, A] = Lifecycle.pure[F[Nothing, _]](a)(using P.asInstanceOf[QuasiPrimitives[F[Nothing, +_]]])
     }
 }
 

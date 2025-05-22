@@ -550,7 +550,7 @@ object ModuleDefDSL {
         */
       def fromZEnvResource[R1 <: Lifecycle[ZIO[Nothing, Any, +_], T]: ClassConstructor](implicit tag: ZIOEnvLifecycleTag[R1, T]): AfterBind = {
         import tag.{A, E, R, ctorR, ev, resourceTag, tagFull}
-        val provider = ClassConstructor[R1].map2(ctorR.provider)((r1, zenv) => provideZEnvLifecycle[R, E, A](ev(r1), zenv))(tagFull)
+        val provider = ClassConstructor[R1].map2(ctorR.provider)((r1, zenv) => provideZEnvLifecycle[R, E, A](ev(r1), zenv))(using tagFull)
         dsl.fromResource(provider)(resourceTag, DummyImplicit.dummyImplicit)
       }
 
@@ -619,7 +619,7 @@ object ModuleDefDSL {
         pos: CodePositionMaterializer,
       ): AfterAdd = {
         import tag.{A, E, R, ctorR, ev, resourceTag, tagFull}
-        val provider = ClassConstructor[R1].map2(ctorR.provider)((r1, zenv) => provideZEnvLifecycle[R, E, A](ev(r1), zenv))(tagFull)
+        val provider = ClassConstructor[R1].map2(ctorR.provider)((r1, zenv) => provideZEnvLifecycle[R, E, A](ev(r1), zenv))(using tagFull)
         dsl.addResource(provider)(resourceTag, pos, DummyImplicit.dummyImplicit)
       }
 
