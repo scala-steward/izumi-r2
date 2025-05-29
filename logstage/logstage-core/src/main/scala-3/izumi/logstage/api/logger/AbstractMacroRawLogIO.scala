@@ -1,7 +1,7 @@
 package izumi.logstage.api.logger
 
 import izumi.fundamentals.platform.language.CodePositionMaterializer
-import izumi.logstage.api.Log
+import izumi.logstage.api.{Log, LogValuesMacro}
 import izumi.logstage.api.Log.Message
 
 trait AbstractMacroRawLogIO[F[_]] { this: AbstractLogIO[F] =>
@@ -13,6 +13,10 @@ trait AbstractMacroRawLogIO[F[_]] { this: AbstractLogIO[F] =>
   inline final def warn(inline message: String): F[Unit] = log(Log.Level.Warn, message)
   inline final def error(inline message: String): F[Unit] = log(Log.Level.Error, message)
   inline final def crit(inline message: String): F[Unit] = log(Log.Level.Crit, message)
+
+  inline final def logValues(inline level: Log.Level)(values: Any*): F[Unit] = {
+    ${ LogValuesMacro.logValuesIO[F]('this, 'level, 'values, 3) }
+  }
 
   inline final def log(inline level: Log.Level, inline message: String): F[Unit] = {
     log(level)(Message.raw(message))(CodePositionMaterializer.materialize)
