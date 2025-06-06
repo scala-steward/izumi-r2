@@ -213,6 +213,16 @@ object ResourceCases {
       override def uninterruptibleExcept[A](f: RestoreInterruption1[Suspend2[E, _]] => Suspend2[E, A]): Suspend2[E, A] = {
         f(Morphism1(identity))
       }
+      
+      override def tapBothUntyped[A](eff: => Suspend2[E, A])(err: Any => Suspend2[E, Unit], succ: A => Suspend2[E, Unit]): Suspend2[E, A] = {
+        Suspend2(
+          () =>
+            Try(eff.run()).toEither.flatMap(identity) match {
+              case Left(error) => err(error).run().map(_ => throw error)
+              case Right(value) => succ(value).run().map(_ => value)
+            }
+        )
+      }
     }
   }
 }
