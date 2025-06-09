@@ -466,7 +466,8 @@ object Izumi {
       final val basePath = Seq("sbt-plugins")
 
       final val settings = Seq(
-        "sbtPlugin" := true
+        "sbtPlugin" := true,
+        "sbtPluginPublishLegacyMavenStyle" := false,
       )
 
       final lazy val izumi_deps = ArtifactId("sbt-izumi-deps")
