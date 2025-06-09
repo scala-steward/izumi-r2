@@ -12,7 +12,7 @@ import scala.concurrent.duration.Duration
 object TemporalZio extends TemporalZio[Any]
 
 open class TemporalZio[R]
-  extends AsyncZio[R] // use own implementation of timeout to match CE race behavior
+  extends AsyncZio[R] // use our own implementation of timeout to match CE race behavior
   with Temporal2[ZIO[R, +_, +_]] {
 
   @inline override final def sleep(duration: Duration): ZIO[R, Nothing, Unit] = {

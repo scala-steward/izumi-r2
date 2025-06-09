@@ -17,7 +17,7 @@ import scala.util.Try
 object AsyncZio extends AsyncZio[Any]
 
 open class AsyncZio[R] extends Async2[ZIO[R, +_, +_]] {
-  @inline override final def InnerF: this.type = this
+  @inline override def InnerF: this.type = this
 
   @inline override final def unit: ZIO[Any, Nothing, Unit] = ZIO.unit
   @inline override final def pure[A](a: A): ZIO[Any, Nothing, A] = ZIO.succeed(a)(Tracer.instance.empty)
