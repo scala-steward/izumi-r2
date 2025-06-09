@@ -6580,32 +6580,32 @@ lazy val `izumi` = (project in file("."))
     ),
     crossScalaVersions := Nil,
     ThisBuild / organization := "io.7mind.izumi",
-    sonatypeProfileName := "io.7mind",
-    sonatypeSessionName := s"[sbt-sonatype] ${name.value} ${version.value} ${java.util.UUID.randomUUID}",
-    ThisBuild / publishTo := 
-    (if (!isSnapshot.value) {
-        sonatypePublishToBundle.value
+    ThisBuild / publishTo := {
+      // https://github.com/sbt/sbt/issues/8131
+      if (isSnapshot.value) {
+        Some(
+          "central-snapshots" at "https://central.sonatype.com/repository/maven-snapshots/"
+        )
       } else {
-        Some(Opts.resolver.sonatypeSnapshots)
-    })
+        localStaging.value
+      }
+    }
     ,
-    ThisBuild / credentials ++= 
-    {
-    val credTarget = Path.userHome / ".sbt" / "secrets" / "credentials.sonatype-nexus.properties"
-    if (credTarget.exists) {
-      Seq(Credentials(credTarget))
-    } else {
-      Seq.empty
-    }
+    ThisBuild / credentials ++= {
+      val credTarget = Path.userHome / ".sbt" / "secrets" / "credentials.sonatype-nexus.properties"
+      if (credTarget.exists) {
+        Seq(Credentials(credTarget))
+      } else {
+        Seq.empty
+      }
     },
-    ThisBuild / credentials ++= 
-    {
-    val credTarget = file(".") / ".secrets" / "credentials.sonatype-nexus.properties"
-    if (credTarget.exists) {
-      Seq(Credentials(credTarget))
-    } else {
-      Seq.empty
-    }
+    ThisBuild / credentials ++= {
+      val credTarget = file(".") / ".secrets" / "credentials.sonatype-nexus.properties"
+      if (credTarget.exists) {
+        Seq(Credentials(credTarget))
+      } else {
+        Seq.empty
+      }
     },
     ThisBuild / homepage := Some(url("https://izumi.7mind.io")),
     ThisBuild / licenses := Seq("BSD-style" -> url("http://www.opensource.org/licenses/bsd-license.php")),

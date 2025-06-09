@@ -289,35 +289,35 @@ object Izumi {
 //          .root.id.value}").toFile""".raw,
         "crossScalaVersions" := "Nil".raw,
         "organization" in SettingScope.Build := "io.7mind.izumi",
-        "sonatypeProfileName" := "io.7mind",
-        "sonatypeSessionName" := """s"[sbt-sonatype] ${name.value} ${version.value} ${java.util.UUID.randomUUID}"""".raw,
         "publishTo" in SettingScope.Build :=
-          """
-            |(if (!isSnapshot.value) {
-            |    sonatypePublishToBundle.value
+          """{
+            |  // https://github.com/sbt/sbt/issues/8131
+            |  if (isSnapshot.value) {
+            |    Some(
+            |      "central-snapshots" at "https://central.sonatype.com/repository/maven-snapshots/"
+            |    )
             |  } else {
-            |    Some(Opts.resolver.sonatypeSnapshots)
-            |})
+            |    localStaging.value
+            |  }
+            |}
             |""".stripMargin.raw,
         "credentials" in SettingScope.Build ++=
-          """
-            |{
-            |val credTarget = Path.userHome / ".sbt" / "secrets" / "credentials.sonatype-nexus.properties"
-            |if (credTarget.exists) {
-            |  Seq(Credentials(credTarget))
-            |} else {
-            |  Seq.empty
-            |}
+          """{
+            |  val credTarget = Path.userHome / ".sbt" / "secrets" / "credentials.sonatype-nexus.properties"
+            |  if (credTarget.exists) {
+            |    Seq(Credentials(credTarget))
+            |  } else {
+            |    Seq.empty
+            |  }
             |}""".stripMargin.raw,
         "credentials" in SettingScope.Build ++=
-          """
-            |{
-            |val credTarget = file(".") / ".secrets" / "credentials.sonatype-nexus.properties"
-            |if (credTarget.exists) {
-            |  Seq(Credentials(credTarget))
-            |} else {
-            |  Seq.empty
-            |}
+          """{
+            |  val credTarget = file(".") / ".secrets" / "credentials.sonatype-nexus.properties"
+            |  if (credTarget.exists) {
+            |    Seq(Credentials(credTarget))
+            |  } else {
+            |    Seq.empty
+            |  }
             |}""".stripMargin.raw,
         "homepage" in SettingScope.Build := """Some(url("https://izumi.7mind.io"))""".raw,
         "licenses" in SettingScope.Build := """Seq("BSD-style" -> url("http://www.opensource.org/licenses/bsd-license.php"))""".raw,
