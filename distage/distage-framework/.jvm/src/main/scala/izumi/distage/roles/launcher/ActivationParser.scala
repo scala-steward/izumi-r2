@@ -5,7 +5,7 @@ import izumi.distage.framework.model.ActivationInfo
 import izumi.distage.model.definition.{Activation, Id}
 import izumi.distage.model.planning.AxisPoint
 import izumi.distage.roles.{DebugProperties, RoleAppMain}
-import izumi.fundamentals.platform.cli.model.raw.RawAppArgs
+import izumi.fundamentals.platform.cli.model.RoleAppArgs
 import izumi.logstage.api.IzLogger
 
 /**
@@ -18,7 +18,7 @@ object ActivationParser {
 
   class Impl(
     parser: RoleAppActivationParser,
-    parameters: RawAppArgs,
+    parameters: RoleAppArgs,
     activationInfo: ActivationInfo,
     defaultActivations: Activation @Id("default"),
     additionalActivations: Activation @Id("additional"),
