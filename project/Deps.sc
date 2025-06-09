@@ -1,4 +1,4 @@
-import $ivy.`io.7mind.izumi.sbt:sbtgen_2.13:0.0.104`
+import $ivy.`io.7mind.izumi.sbt:sbtgen_2.13:0.0.107`
 import izumi.sbtgen._
 import izumi.sbtgen.model._
 
@@ -301,6 +301,15 @@ object Izumi {
             |  }
             |}
             |""".stripMargin.raw,
+        "credentials" in SettingScope.Build ++=
+          """{
+            |  val credTarget = Path.userHome / ".sbt" / "secrets" / "credentials.sonatype-new.properties"
+            |  if (credTarget.exists) {
+            |    Seq(Credentials(credTarget))
+            |  } else {
+            |    Seq.empty
+            |  }
+            |}""".stripMargin.raw,
         "credentials" in SettingScope.Build ++=
           """{
             |  val credTarget = Path.userHome / ".sbt" / "secrets" / "credentials.sonatype-nexus.properties"

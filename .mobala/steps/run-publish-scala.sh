@@ -20,7 +20,8 @@ function run-publish-scala() {
       "$VERSION_COMMAND clean" \
       "$VERSION_COMMAND package" \
       "$VERSION_COMMAND publishSigned" \
-      "sonatypeBundleRelease"
+      "sonaUpload" \
+      "sonaRelease"
   else
     sbt -batch -no-colors -v \
       --java-home "$JAVA_HOME" \

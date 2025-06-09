@@ -6593,6 +6593,14 @@ lazy val `izumi` = (project in file("."))
     }
     ,
     ThisBuild / credentials ++= {
+      val credTarget = Path.userHome / ".sbt" / "secrets" / "credentials.sonatype-new.properties"
+      if (credTarget.exists) {
+        Seq(Credentials(credTarget))
+      } else {
+        Seq.empty
+      }
+    },
+    ThisBuild / credentials ++= {
       val credTarget = Path.userHome / ".sbt" / "secrets" / "credentials.sonatype-nexus.properties"
       if (credTarget.exists) {
         Seq(Credentials(credTarget))
@@ -6614,7 +6622,7 @@ lazy val `izumi` = (project in file("."))
               Developer(id = "7mind", name = "Septimal Mind", url = url("https://github.com/7mind"), email = "team@7mind.io"),
             ),
     ThisBuild / scmInfo := Some(ScmInfo(url("https://github.com/7mind/izumi"), "scm:git:https://github.com/7mind/izumi.git")),
-    libraryDependencies += "io.7mind.izumi.sbt" % "sbtgen_2.12" % "0.0.104"
+    libraryDependencies += "io.7mind.izumi.sbt" % "sbtgen_2.12" % "0.0.107"
   )
   .enablePlugins(SitePreviewPlugin)
   .disablePlugins(AssemblyPlugin)
