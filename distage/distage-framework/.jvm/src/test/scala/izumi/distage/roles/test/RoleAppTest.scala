@@ -688,11 +688,11 @@ class RoleAppTest extends AnyWordSpec with WithProperties {
       unsafe.getObject(`object`, unsafe.objectFieldOffset(clazz.getDeclaredField(name))).asInstanceOf[T]
     }
 
-    private val unsafe: sun.misc.Unsafe = {
+    private val unsafe: _root_.sun.misc.Unsafe = {
       try {
-        val field = classOf[sun.misc.Unsafe].getDeclaredField("theUnsafe")
+        val field = classOf[_root_.sun.misc.Unsafe].getDeclaredField("theUnsafe")
         field.setAccessible(true)
-        val res = field.get(null).asInstanceOf[sun.misc.Unsafe]
+        val res = field.get(null).asInstanceOf[_root_.sun.misc.Unsafe]
         field.setAccessible(false)
         res
       } catch {
