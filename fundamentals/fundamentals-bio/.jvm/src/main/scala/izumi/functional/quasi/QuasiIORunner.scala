@@ -1,6 +1,7 @@
 package izumi.functional.quasi
 
 import izumi.functional.bio.UnsafeRun2
+import izumi.functional.bio.data.Morphism1
 import izumi.fundamentals.platform.functional.Identity
 
 /**
@@ -35,5 +36,11 @@ object QuasiIORunner extends LowPriorityQuasiIORunnerInstances {
 
   final class CatsDispatcherImpl[F[_]](implicit dispatcher: cats.effect.std.Dispatcher[F]) extends QuasiIORunner[F] {
     override def run[A](f: => F[A]): A = dispatcher.unsafeRunSync(f)
+  }
+
+  implicit class QuasiIORunnerOps[F[_]](private val runner: QuasiIORunner[F]) extends AnyVal {
+    def contramapK[G[_]](g: Morphism1[G, F]): QuasiIORunner[G] = new QuasiIORunner[G] {
+      override def run[A](f: => G[A]): A = runner.run(g(f))
+    }
   }
 }

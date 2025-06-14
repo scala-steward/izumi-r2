@@ -11,6 +11,7 @@ import scala.concurrent.duration.FiniteDuration
 import scala.util.Try
 
 object unsafe {
+  import scala.collection.compat.*
 
   object EitherSupport {
     import TrySupport.{quasiAsyncTry, quasiIORunnerTry, quasiIOTry, quasiTemporalTry}
@@ -106,9 +107,7 @@ object unsafe {
       override def sleep(duration: FiniteDuration): Either[Throwable, Unit] = quasiTemporalTry.sleep(duration).toEither
     }
 
-    implicit val quasiIORunnerEither: QuasiIORunner[Either[Throwable, _]] = new QuasiIORunner[Either[Throwable, _]] {
-      override def run[A](f: => Either[Throwable, A]): A = quasiIORunnerTry.run(f.toTry)
-    }
+    implicit val quasiIORunnerEither: QuasiIORunner[Either[Throwable, _]] = quasiIORunnerTry.contramapK(Morphism1(_.toTry))
 
     implicit val defaultModuleEither: DefaultModule[Either[Throwable, _]] = DefaultModule(new ModuleDef {
       addImplicit[QuasiIO[Either[Throwable, _]]]
@@ -232,9 +231,7 @@ object unsafe {
       override def sleep(duration: FiniteDuration): Try[Unit] = Try(QuasiTemporal.quasiTimerIdentity.sleep(duration))
     }
 
-    implicit val quasiIORunnerTry: QuasiIORunner[Try] = new QuasiIORunner[Try] {
-      override def run[A](f: => Try[A]): A = f.get
-    }
+    implicit val quasiIORunnerTry: QuasiIORunner[Try] = QuasiIORunner.IdentityImpl.contramapK(Morphism1[Try, Identity](_.get))
 
     implicit val defaultModuleTry: DefaultModule[Try] = DefaultModule(new ModuleDef {
       addImplicit[QuasiIO[Try]]

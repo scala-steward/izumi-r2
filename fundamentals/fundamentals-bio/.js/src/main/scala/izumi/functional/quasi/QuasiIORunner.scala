@@ -2,6 +2,7 @@ package izumi.functional.quasi
 
 import cats.effect.IO
 import izumi.functional.bio.{Exit, UnsafeRun2}
+import izumi.functional.bio.data.Morphism1
 import izumi.fundamentals.platform.functional.Identity
 
 import scala.concurrent.{ExecutionContext, Future}
@@ -35,5 +36,11 @@ object QuasiIORunner extends LowPriorityQuasiIORunnerInstances {
 
   final class CatsDispatcherImpl[F[_]](implicit dispatcher: cats.effect.std.Dispatcher[F]) extends QuasiIORunner[F] {
     override def runFuture[A](f: => F[A]): Future[A] = dispatcher.unsafeToFuture(f)
+  }
+
+  implicit class QuasiIORunnerOps[F[_]](private val runner: QuasiIORunner[F]) extends AnyVal {
+    def contramapK[G[_]](g: Morphism1[G, F]): QuasiIORunner[G] = new QuasiIORunner[G] {
+      override def runFuture[A](f: => G[A]): Future[A] = runner.runFuture(g(f))
+    }
   }
 }
