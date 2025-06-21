@@ -15,13 +15,13 @@ object V {
   val discipline = "1.7.0"
   val discipline_scalatest = "2.3.0"
 
-  val zio = "2.1.18"
+  val zio = "2.1.19"
   val zio_interop_cats = "23.1.0.5"
 
   val monix = "3.4.0"
   val monix_bio = "1.2.0"
 
-  val circe = "0.14.13"
+  val circe = "0.14.14"
   val circe_derivation = "0.13.0-M5"
   val pureconfig = "0.17.8"
   val magnolia = "1.1.10"
@@ -36,12 +36,12 @@ object V {
   val typesafe_config = "1.4.0"
 
   // good to drop - java
-  val bytebuddy = "1.17.5"
+  val bytebuddy = "1.17.6"
   val docker_java = "3.5.1"
 
   // microsite-only
   val doobie = "1.0.0-RC2"
 
   // test-only
-  val scalamock = "7.3.2"
+  val scalamock = "7.3.3"
 }
