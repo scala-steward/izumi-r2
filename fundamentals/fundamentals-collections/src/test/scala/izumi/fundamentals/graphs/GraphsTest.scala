@@ -105,7 +105,7 @@ class GraphsTest extends AnyWordSpec {
           Right(acyclic.transposed)
         }
       }
-      assert(DAG.fromSucc(cyclic, GraphMeta.empty, breaker).map {
+      assert(DAG.fromPred(cyclic, GraphMeta.empty, breaker).map {
         (d: DAG[Int, Nothing]) => d.successors
       } == Right(acyclic))
     }
