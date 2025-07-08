@@ -29,24 +29,15 @@ trait WithDIWiring { this: DIUniverseBase with WithDIAssociation with WithDISymb
     }
 
     case class Factory(factoryMethods: List[Factory.FactoryMethod], classParameters: List[List[Association.Parameter]], methods: List[Association.AbstractMethod])
-      extends MacroWiring {
-      @nowarn("msg=Unused import")
-      final def factoryProductDepsFromObjectGraph: List[Association] = {
-        import izumi.fundamentals.collections.IzCollections._
-        val fieldKeys = methods.map(_.key).toSet
+      extends MacroWiring
 
+    object Factory {
+      @nowarn("msg=Unused import")
+      def factoryProductDepsFromObjectGraph(factoryMethods: List[Factory.FactoryMethod]): List[Association] = {
+        import izumi.fundamentals.collections.IzCollections._
         factoryMethods
           .flatMap(_.objectGraphDeps)
           .distinctBy(_.key)
-          .filterNot(fieldKeys contains _.key)
-      }
-    }
-
-    object Factory {
-      object WithProductDeps {
-        def unapply(arg: Factory): Some[(List[Factory.FactoryMethod], List[List[Association.Parameter]], List[Association.AbstractMethod], List[Association])] = {
-          Some((arg.factoryMethods, arg.classParameters, arg.methods, arg.factoryProductDepsFromObjectGraph))
-        }
       }
 
       case class FactoryMethod(factoryMethod: MacroSymbolInfo.Runtime, wireWith: MacroSingletonWiring, methodArgumentKeys: Seq[MacroDIKey]) {
