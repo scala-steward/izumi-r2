@@ -15,6 +15,9 @@ sealed trait AdjacencyList[N] {
   def asSucc: AdjacencySuccList[N] = AdjacencySuccList.factory(links)
   def asPred: AdjacencyPredList[N] = AdjacencyPredList.factory(links)
 
+  def apply(nodeId: N): Set[N] = links(nodeId)
+  def get(nodeId: N): Option[Set[N]] = links.get(nodeId)
+
   protected def transposedList: Map[N, Set[N]] = {
     val output = mutable.HashMap.empty[N, mutable.LinkedHashSet[N]]
     links.foreach {
