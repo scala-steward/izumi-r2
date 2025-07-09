@@ -8,7 +8,7 @@ import izumi.distage.model.planning.ForwardingRefResolver
 import izumi.distage.model.reflection.*
 import izumi.distage.planning.sequential.FwdrefLoopBreaker.BreakAt
 import izumi.fundamentals.collections.nonempty.NEList
-import izumi.fundamentals.graphs.struct.AdjacencyList
+import izumi.fundamentals.graphs.struct.{AdjacencyList, AdjacencyPredList}
 import izumi.fundamentals.graphs.tools.cycles.LoopDetector
 import izumi.fundamentals.graphs.{DG, GraphMeta}
 
@@ -176,7 +176,7 @@ class ForwardingRefResolverDefaultImpl(
           }
       }.biSequence
     } yield {
-      val p = AdjacencyList(context.updatedPredcessors.view.mapValues(_.toSet).toMap)
+      val p = AdjacencyPredList(context.updatedPredcessors.view.mapValues(_.toSet).toMap)
       DG.fromPred(p, GraphMeta(context.updatedPlan.toMap))
     }
   }

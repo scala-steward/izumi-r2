@@ -2,7 +2,7 @@ package izumi.fundamentals.graphs
 
 import izumi.fundamentals.graphs.GraphImpl.{DirectedGraphPred, DirectedGraphSucc}
 import izumi.fundamentals.graphs.GraphProperty.DirectedGraph
-import izumi.fundamentals.graphs.struct.AdjacencyList
+import izumi.fundamentals.graphs.struct.{AdjacencyPredList, AdjacencySuccList}
 import izumi.fundamentals.graphs.tools.{Toposort, ToposortLoopBreaker}
 
 final case class DLG[N, +M](
@@ -12,9 +12,9 @@ final case class DLG[N, +M](
   with DirectedGraph[N, M]
   with DirectedGraphSucc[N, M]
   with DirectedGraphPred[N, M] {
-  override lazy val successors: AdjacencyList[N] = AdjacencyList.linear(nodes)
+  override lazy val successors: AdjacencySuccList[N] = AdjacencySuccList.linear(nodes)
 
-  override lazy val predecessors: AdjacencyList[N] = AdjacencyList.linear(nodes.reverse)
+  override lazy val predecessors: AdjacencyPredList[N] = AdjacencyPredList.linear(nodes.reverse)
 
   override def transposed: DirectedGraph[N, M] = DLG(nodes.reverse, meta)
 }

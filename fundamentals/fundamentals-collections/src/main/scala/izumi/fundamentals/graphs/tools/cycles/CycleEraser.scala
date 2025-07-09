@@ -1,27 +1,27 @@
 package izumi.fundamentals.graphs.tools.cycles
 
 import izumi.fundamentals.graphs.DAGError
-import izumi.fundamentals.graphs.struct.AdjacencyList
+import izumi.fundamentals.graphs.struct.{AdjacencyList, AdjacencyPredList}
 
 import scala.annotation.nowarn
 import scala.collection.mutable
 
 // TODO: this class is not required for distage
 @nowarn("msg=Unused import")
-final class CycleEraser[N](predecessorsMatrix: AdjacencyList[N], breaker: LoopBreaker[N]) {
+final class CycleEraser[N](predecessorsMatrix: AdjacencyPredList[N], breaker: LoopBreaker[N]) {
   import scala.collection.compat._
 
   private val output: mutable.Map[N, mutable.LinkedHashSet[N]] = mutable.HashMap.empty
   private var current: mutable.Map[N, mutable.LinkedHashSet[N]] = asMut(predecessorsMatrix)
 
-  def run(): Either[DAGError[N], AdjacencyList[N]] = {
+  def run(): Either[DAGError[N], AdjacencyPredList[N]] = {
     val (noPreds, hasPreds) = current.partition(_._2.isEmpty)
 
     if (noPreds.isEmpty) {
       if (hasPreds.isEmpty) {
-        Right(AdjacencyList(output.toSeq*))
+        Right(AdjacencyPredList(output.toSeq*))
       } else {
-        val asMatrix = AdjacencyList(hasPreds.view.mapValues(_.toSet).toMap)
+        val asMatrix = AdjacencyPredList(hasPreds.view.mapValues(_.toSet).toMap)
 
         for {
           noLoops <- breaker.breakLoops(asMatrix).left.map(_ => DAGError.UnexpectedLoops[N]())

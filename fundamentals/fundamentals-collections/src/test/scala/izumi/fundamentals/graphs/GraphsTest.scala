@@ -39,7 +39,7 @@ class GraphsTest extends AnyWordSpec {
   "GC" should {
     "remove unreachable nodes" in {
       val dagOut = for {
-        g <- DAG.fromSucc(collectableDag, GraphMeta(Map.empty[Int, String]))
+        g <- DAG.fromSucc(collectableDag.asSucc, GraphMeta(Map.empty[Int, String]))
         c <- g.gc(Set(6), Set.empty)
       } yield {
         c
@@ -48,7 +48,7 @@ class GraphsTest extends AnyWordSpec {
       assert(dagOut.map(_.successors) == Right(collectedDag))
 
       val cyclicOut = for {
-        g <- Right(DG.fromSucc(collectableCyclic, GraphMeta(Map.empty[Int, String])))
+        g <- Right(DG.fromSucc(collectableCyclic.asSucc, GraphMeta(Map.empty[Int, String])))
         c <- g.gc(Set(6), Set.empty)
       } yield {
         c
@@ -59,7 +59,7 @@ class GraphsTest extends AnyWordSpec {
 
     "support weak edges" in {
       val out = for {
-        g <- Right(DG.fromSucc(collectableLinear, GraphMeta(Map.empty[Int, String])))
+        g <- Right(DG.fromSucc(collectableLinear.asSucc, GraphMeta(Map.empty[Int, String])))
         c <- g.gc(Set(6), Set(WeakEdge(2, 3)))
       } yield {
         c
@@ -80,39 +80,39 @@ class GraphsTest extends AnyWordSpec {
 
   "DG" should {
     "support two instantiation ways" in {
-      val g1 = DG.fromSucc(dag, GraphMeta.empty)
-      val g2 = DG.fromPred(dag, GraphMeta.empty)
-      assert(g1.successors == g2.predecessors)
-      assert(g1.predecessors == g2.successors)
+      val g1 = DG.fromSucc(dag.asSucc, GraphMeta.empty)
+      val g2 = DG.fromPred(dag.asPred, GraphMeta.empty)
+      assert(g1.successors.links == g2.predecessors.links)
+      assert(g1.predecessors.links == g2.successors.links)
     }
   }
 
   "DAG" should {
     "support two instantiation ways" in {
-      val g1 = DAG.fromSucc(dag, GraphMeta.empty).toOption.get
-      val g2 = DAG.fromPred(dag, GraphMeta.empty).toOption.get
-      assert(g1.successors == g2.predecessors)
-      assert(g1.predecessors == g2.successors)
+      val g1 = DAG.fromSucc(dag.asSucc, GraphMeta.empty).toOption.get
+      val g2 = DAG.fromPred(dag.asPred, GraphMeta.empty).toOption.get
+      assert(g1.successors.links == g2.predecessors.links)
+      assert(g1.predecessors.links == g2.successors.links)
     }
 
     "not break on acyclic matrices" in {
-      assert(DAG.fromSucc(dag, GraphMeta.empty).map {
+      assert(DAG.fromSucc(dag.asSucc, GraphMeta.empty).map {
         (d: DAG[Int, String]) => d.successors
       } == Right(dag))
-      assert(DAG.fromSucc(acyclic, GraphMeta.empty).map {
+      assert(DAG.fromSucc(acyclic.asSucc, GraphMeta.empty).map {
         (d: DAG[Int, Nothing]) => d.successors
       } == Right(acyclic))
     }
 
     "break on cyclic matrices" in {
-      assert(DAG.fromSucc(cyclic, GraphMeta.empty).isLeft)
+      assert(DAG.fromSucc(cyclic.asSucc, GraphMeta.empty).isLeft)
     }
 
     "detect broken loop breakers" in {
       val brokenBreaker = new LoopBreaker[Int] {
         override def breakLoops(withLoops: AdjacencyList[Int]): Either[UnrecoverableLoops[Int], AdjacencyList[Int]] = Right(withLoops)
       }
-      assert(DAG.fromSucc(cyclic, GraphMeta.empty, brokenBreaker).isLeft)
+      assert(DAG.fromSucc(cyclic.asSucc, GraphMeta.empty, brokenBreaker).isLeft)
     }
 
     "support loop breakers" in {
@@ -121,7 +121,7 @@ class GraphsTest extends AnyWordSpec {
           Right(acyclic.transposed)
         }
       }
-      assert(DAG.fromPred(cyclic, GraphMeta.empty, breaker).map {
+      assert(DAG.fromPred(cyclic.asPred, GraphMeta.empty, breaker).map {
         (d: DAG[Int, Nothing]) => d.successors
       } == Right(acyclic))
     }

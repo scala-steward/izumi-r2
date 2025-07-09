@@ -1,13 +1,13 @@
 package izumi.fundamentals.graphs
 
 import izumi.fundamentals.graphs.GraphImpl.DirectedGraphPred
-import izumi.fundamentals.graphs.struct.AdjacencyList
+import izumi.fundamentals.graphs.struct.AdjacencyPredList
 import izumi.fundamentals.graphs.tools.gc.GC
 import izumi.fundamentals.graphs.tools.gc.GC.GCInput
 
 trait GraphSyntax[G[n, m] <: AbstractGraph[n, m]] {
 
-  protected def unsafeFactory[N, M](predecessors: AdjacencyList[N], meta: GraphMeta[N, M]): G[N, M]
+  protected def unsafeFactory[N, M](predecessors: AdjacencyPredList[N], meta: GraphMeta[N, M]): G[N, M]
 
   implicit class DGExt[N, M](g: AbstractGraph[N, M] & DirectedGraphPred[N, M]) {
     def gc(roots: Set[N], weak: Set[WeakEdge[N]]): Either[Nothing, G[N, M]] = {

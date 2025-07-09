@@ -5,19 +5,19 @@ import izumi.distage.model.Locator.LocatorMeta
 import izumi.distage.model.definition.Binding.{EmptySetBinding, SetElementBinding, SingletonBinding}
 import izumi.distage.model.definition.ImplDef.InstanceImpl
 import izumi.distage.model.definition.dsl.AbstractBindingDefDSL
+import izumi.distage.model.definition.dsl.AbstractBindingDefDSL.*
 import izumi.distage.model.definition.dsl.AbstractBindingDefDSL.SetInstruction.SetIdAll
 import izumi.distage.model.definition.dsl.AbstractBindingDefDSL.SingletonInstruction.{AliasTo, SetId, SetImpl}
-import izumi.distage.model.definition.dsl.AbstractBindingDefDSL.*
 import izumi.distage.model.exceptions.dsl.LocatorDefUninstantiatedBindingException
+import izumi.distage.model.plan.*
 import izumi.distage.model.plan.ExecutableOp.WiringOp.UseInstance
 import izumi.distage.model.plan.Wiring.SingletonWiring.Instance
-import izumi.distage.model.plan.*
 import izumi.distage.model.plan.operations.OperationOrigin
 import izumi.distage.model.provisioning.PlanInterpreter
 import izumi.distage.model.references.IdentifiedRef
 import izumi.distage.model.reflection.*
 import izumi.distage.model.{Locator, PlannerInput}
-import izumi.fundamentals.graphs.struct.AdjacencyList
+import izumi.fundamentals.graphs.struct.AdjacencySuccList
 import izumi.fundamentals.graphs.{DG, GraphMeta}
 import izumi.fundamentals.platform.language.{CodePositionMaterializer, SourceFilePosition}
 import izumi.reflect.{Tag, TagK}
@@ -55,10 +55,10 @@ trait LocatorDef extends AbstractLocator with AbstractBindingDefDSL[LocatorDef.B
         (UseInstance(key, Instance(key.tpe, value), origin), binding)
     }.toVector
 
-    val s = AdjacencyList(ops.map(op => (op._1.target, Set.empty[DIKey])).toMap)
+    val s = AdjacencySuccList(ops.map(op => (op._1.target, Set.empty[DIKey])).toMap)
     val nodes = ops.map(op => (op._1.target, op._1))
     Plan(
-      DG(s, s.transposed, GraphMeta(nodes.toMap)),
+      DG.fromSucc(s, GraphMeta(nodes.toMap)),
       PlannerInput(Module.make(ops.map(_._2).toSet), Roots.Everything, Activation.empty, LocatorPrivacy.PublicByDefault),
     )
   }
