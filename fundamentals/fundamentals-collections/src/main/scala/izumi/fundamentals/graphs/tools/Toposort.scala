@@ -2,13 +2,13 @@ package izumi.fundamentals.graphs.tools
 
 import izumi.fundamentals.graphs.ToposortError
 import izumi.fundamentals.graphs.ToposortError.InconsistentInput
-import izumi.fundamentals.graphs.struct.IncidenceMatrix
+import izumi.fundamentals.graphs.struct.AdjacencyList
 
 import scala.annotation.{nowarn, tailrec}
 
 object Toposort {
 
-  final def cycleBreaking[T](predecessors: IncidenceMatrix[T], break: ToposortLoopBreaker[T]): Either[ToposortError[T], Seq[T]] = {
+  final def cycleBreaking[T](predecessors: AdjacencyList[T], break: ToposortLoopBreaker[T]): Either[ToposortError[T], Seq[T]] = {
     cycleBreaking(predecessors.links, Seq.empty, break)
   }
 
@@ -24,7 +24,7 @@ object Toposort {
       } else { // circular dependency
         val maybeNext = for {
           loopMembers <- Right(hasPreds.view.filterKeys(isInvolvedIntoCycle(hasPreds)).toMap)
-          _ <- if (loopMembers.isEmpty) Left(InconsistentInput(IncidenceMatrix(hasPreds))) else Right(())
+          _ <- if (loopMembers.isEmpty) Left(InconsistentInput(AdjacencyList(hasPreds))) else Right(())
           resolved <- break.onLoop(done, loopMembers)
           next = hasPreds.view.filterKeys(k => !resolved.breakAt.contains(k)).mapValues(_ -- resolved.breakAt).toMap
 

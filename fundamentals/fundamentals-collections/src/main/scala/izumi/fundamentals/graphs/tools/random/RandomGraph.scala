@@ -1,6 +1,6 @@
 package izumi.fundamentals.graphs.tools.random
 
-import izumi.fundamentals.graphs.struct.IncidenceMatrix
+import izumi.fundamentals.graphs.struct.AdjacencyList
 
 import scala.annotation.nowarn
 import scala.collection.mutable
@@ -11,7 +11,7 @@ import scala.util.Random
 object RandomGraph {
   import scala.collection.compat._
 
-  def makeDG[N: Generator: ClassTag](nodes: Int, maxEdges: Int, random: Random = Random): IncidenceMatrix[N] = {
+  def makeDG[N: Generator: ClassTag](nodes: Int, maxEdges: Int, random: Random = Random): AdjacencyList[N] = {
     assert(nodes > 0)
     assert(maxEdges > 0)
     val ordered = makeShuffledNodes(nodes, random)
@@ -34,11 +34,11 @@ object RandomGraph {
       out.put(n, links)
     }
 
-    IncidenceMatrix(out.toMap)
+    AdjacencyList(out.toMap)
 
   }
 
-  def makeDAG[N: Generator: ClassTag](nodes: Int, maxEdges: Int, random: Random = Random): IncidenceMatrix[N] = {
+  def makeDAG[N: Generator: ClassTag](nodes: Int, maxEdges: Int, random: Random = Random): AdjacencyList[N] = {
     assert(nodes > 0)
     assert(maxEdges > 0)
     val ordered = makeShuffledNodes(nodes, random)
@@ -63,7 +63,7 @@ object RandomGraph {
       out.put(n, links)
     }
 
-    IncidenceMatrix(out.toMap)
+    AdjacencyList(out.toMap)
   }
 
   private def makeShuffledNodes[N: Generator: ClassTag](nodes: Int, random: Random): Array[N] = {

@@ -8,7 +8,7 @@ import izumi.distage.model.planning.ForwardingRefResolver
 import izumi.distage.model.reflection.*
 import izumi.distage.planning.sequential.FwdrefLoopBreaker.BreakAt
 import izumi.fundamentals.collections.nonempty.NEList
-import izumi.fundamentals.graphs.struct.IncidenceMatrix
+import izumi.fundamentals.graphs.struct.AdjacencyList
 import izumi.fundamentals.graphs.tools.cycles.LoopDetector
 import izumi.fundamentals.graphs.{DG, GraphMeta}
 
@@ -68,7 +68,7 @@ object ForwardingRefResolverDefaultImpl {
         case Some(value) =>
           value
         case None =>
-          val loop = LoopDetector.Impl.findCyclesForNode(dependee, IncidenceMatrix(unprocessedPredecessors)).toList.flatMap(_.loops.flatMap(_.loop)).toSet
+          val loop = LoopDetector.Impl.findCyclesForNode(dependee, AdjacencyList(unprocessedPredecessors)).toList.flatMap(_.loops.flatMap(_.loop)).toSet
           loop.foreach {
             k =>
               knownLoops.put(k, loop)
@@ -176,7 +176,7 @@ class ForwardingRefResolverDefaultImpl(
           }
       }.biSequence
     } yield {
-      val p = IncidenceMatrix(context.updatedPredcessors.view.mapValues(_.toSet).toMap)
+      val p = AdjacencyList(context.updatedPredcessors.view.mapValues(_.toSet).toMap)
       DG.fromPred(p, GraphMeta(context.updatedPlan.toMap))
     }
   }

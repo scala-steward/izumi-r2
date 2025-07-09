@@ -1,7 +1,7 @@
 package izumi.fundamentals.graphs
 
 import izumi.fundamentals.graphs.GraphTraversalError.UnrecoverableLoops
-import izumi.fundamentals.graphs.struct.IncidenceMatrix
+import izumi.fundamentals.graphs.struct.AdjacencyList
 import izumi.fundamentals.graphs.tools.cycles.LoopDetector.{Cycles, Impl, Loop}
 import izumi.fundamentals.graphs.tools.cycles.{LoopBreaker, LoopDetector}
 import org.scalatest.wordspec.AnyWordSpec
@@ -67,7 +67,7 @@ class GraphsTest extends AnyWordSpec {
 
       assert(
         out.map(_.successors) == Right(
-          IncidenceMatrix(
+          AdjacencyList(
             3 -> Set(4),
             4 -> Set(5),
             5 -> Set(6),
@@ -78,7 +78,23 @@ class GraphsTest extends AnyWordSpec {
     }
   }
 
+  "DG" should {
+    "support two instantiation ways" in {
+      val g1 = DG.fromSucc(dag, GraphMeta.empty)
+      val g2 = DG.fromPred(dag, GraphMeta.empty)
+      assert(g1.successors == g2.predecessors)
+      assert(g1.predecessors == g2.successors)
+    }
+  }
+
   "DAG" should {
+    "support two instantiation ways" in {
+      val g1 = DAG.fromSucc(dag, GraphMeta.empty).toOption.get
+      val g2 = DAG.fromPred(dag, GraphMeta.empty).toOption.get
+      assert(g1.successors == g2.predecessors)
+      assert(g1.predecessors == g2.successors)
+    }
+
     "not break on acyclic matrices" in {
       assert(DAG.fromSucc(dag, GraphMeta.empty).map {
         (d: DAG[Int, String]) => d.successors
@@ -94,14 +110,14 @@ class GraphsTest extends AnyWordSpec {
 
     "detect broken loop breakers" in {
       val brokenBreaker = new LoopBreaker[Int] {
-        override def breakLoops(withLoops: IncidenceMatrix[Int]): Either[UnrecoverableLoops[Int], IncidenceMatrix[Int]] = Right(withLoops)
+        override def breakLoops(withLoops: AdjacencyList[Int]): Either[UnrecoverableLoops[Int], AdjacencyList[Int]] = Right(withLoops)
       }
       assert(DAG.fromSucc(cyclic, GraphMeta.empty, brokenBreaker).isLeft)
     }
 
     "support loop breakers" in {
       val breaker = new LoopBreaker[Int] {
-        override def breakLoops(withLoops: IncidenceMatrix[Int]): Either[UnrecoverableLoops[Int], IncidenceMatrix[Int]] = {
+        override def breakLoops(withLoops: AdjacencyList[Int]): Either[UnrecoverableLoops[Int], AdjacencyList[Int]] = {
           Right(acyclic.transposed)
         }
       }

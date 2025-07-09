@@ -4,7 +4,7 @@ import izumi.distage.model.definition.errors.ProvisionerIssue
 import izumi.distage.model.provisioning.{NewObjectOp, OpStatus}
 import izumi.distage.model.reflection.DIKey
 import izumi.distage.provisioning.TraversalState.Current.{CannotProgress, Done, Step}
-import izumi.fundamentals.graphs.struct.IncidenceMatrix
+import izumi.fundamentals.graphs.struct.AdjacencyList
 
 import scala.annotation.nowarn
 import scala.collection.mutable
@@ -41,11 +41,11 @@ object TimedResult {
 }
 
 final class TraversalState(
-  val current: TraversalState.Current,
-  val preds: IncidenceMatrix[DIKey],
-  val knownBroken: Set[DIKey],
-  val failures: Vector[ProvisionerIssue],
-  _status: mutable.HashMap[DIKey, OpStatus],
+                            val current: TraversalState.Current,
+                            val preds: AdjacencyList[DIKey],
+                            val knownBroken: Set[DIKey],
+                            val failures: Vector[ProvisionerIssue],
+                            _status: mutable.HashMap[DIKey, OpStatus],
 ) {
 
   def status(): Map[DIKey, OpStatus] = _status.toMap
@@ -92,7 +92,7 @@ final class TraversalState(
 }
 
 object TraversalState {
-  def apply(preds: IncidenceMatrix[DIKey]): TraversalState = {
+  def apply(preds: AdjacencyList[DIKey]): TraversalState = {
     val todo = mutable.HashMap[DIKey, OpStatus]()
     todo ++= preds.links.keySet.map(_ -> OpStatus.Planned())
     new TraversalState(
@@ -108,6 +108,6 @@ object TraversalState {
   object Current {
     final case class Step(steps: Iterable[DIKey]) extends Current
     final case class Done() extends Current
-    final case class CannotProgress(left: IncidenceMatrix[DIKey]) extends Current
+    final case class CannotProgress(left: AdjacencyList[DIKey]) extends Current
   }
 }

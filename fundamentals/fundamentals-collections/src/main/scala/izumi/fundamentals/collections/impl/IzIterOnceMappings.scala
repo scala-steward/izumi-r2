@@ -2,7 +2,14 @@ package izumi.fundamentals.collections
 
 import scala.annotation.nowarn
 import scala.collection.compat.*
-import scala.collection.mutable
+import scala.collection.{MapView, View, mutable}
+
+@nowarn("msg=Unused import")
+final class IzMultiMaps[A, B](private val mmap: scala.collection.Map[A, Set[B]]) extends AnyVal {
+  def unwrap: List[(A, B)] = {
+    mmap.view.flatMap { case (k, vs) => vs.map(v => (k, v)) }.toList
+  }
+}
 
 @nowarn("msg=Unused import")
 final class IzIterOnceMappings[A, B](private val list: IterableOnce[(A, B)]) extends AnyVal {
@@ -16,7 +23,7 @@ final class IzIterOnceMappings[A, B](private val list: IterableOnce[(A, B)]) ext
     }
   }
 
-  def toMultimapView = {
+  def toMultimapView: MapView[A, View[B]] = {
     toMultimapMut.view.mapValues(_.view)
   }
 

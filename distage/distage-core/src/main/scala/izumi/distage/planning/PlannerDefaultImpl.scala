@@ -14,7 +14,7 @@ import izumi.distage.model.reflection.DIKey
 import izumi.distage.model.{Planner, PlannerInput}
 import izumi.distage.planning.solver.{PlanSolver, SemigraphSolver}
 import izumi.fundamentals.collections.nonempty.NEList
-import izumi.fundamentals.graphs.struct.IncidenceMatrix
+import izumi.fundamentals.graphs.struct.AdjacencyList
 import izumi.fundamentals.graphs.{DG, GraphMeta}
 
 import scala.annotation.nowarn
@@ -88,7 +88,7 @@ class PlannerDefaultImpl(
     } yield {
       val mappedOps = mappedGraph.view.flatMap(_._2).toMap
       val mappedMatrix = mappedGraph.view.map(_._1).filter { case (k, _) => mappedOps.contains(k) }.toMap
-      val plan = DG.fromPred(IncidenceMatrix(mappedMatrix), GraphMeta(mappedOps))
+      val plan = DG.fromPred(AdjacencyList(mappedMatrix), GraphMeta(mappedOps))
       plan
     }
 
@@ -160,7 +160,7 @@ class PlannerDefaultImpl(
 
     val fullMeta = GraphMeta(plan.meta.nodes ++ imports ++ missingRootsImports)
 
-    DG.fromPred(IncidenceMatrix(plan.predecessors.links ++ allImports), fullMeta)
+    DG.fromPred(AdjacencyList(plan.predecessors.links ++ allImports), fullMeta)
   }
 
 }

@@ -17,7 +17,7 @@ import izumi.distage.model.provisioning.PlanInterpreter
 import izumi.distage.model.references.IdentifiedRef
 import izumi.distage.model.reflection.*
 import izumi.distage.model.{Locator, PlannerInput}
-import izumi.fundamentals.graphs.struct.IncidenceMatrix
+import izumi.fundamentals.graphs.struct.AdjacencyList
 import izumi.fundamentals.graphs.{DG, GraphMeta}
 import izumi.fundamentals.platform.language.{CodePositionMaterializer, SourceFilePosition}
 import izumi.reflect.{Tag, TagK}
@@ -55,7 +55,7 @@ trait LocatorDef extends AbstractLocator with AbstractBindingDefDSL[LocatorDef.B
         (UseInstance(key, Instance(key.tpe, value), origin), binding)
     }.toVector
 
-    val s = IncidenceMatrix(ops.map(op => (op._1.target, Set.empty[DIKey])).toMap)
+    val s = AdjacencyList(ops.map(op => (op._1.target, Set.empty[DIKey])).toMap)
     val nodes = ops.map(op => (op._1.target, op._1))
     Plan(
       DG(s, s.transposed, GraphMeta(nodes.toMap)),

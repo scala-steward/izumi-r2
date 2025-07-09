@@ -15,7 +15,7 @@ import izumi.functional.IzEither.*
 import izumi.fundamentals.collections.{ImmutableMultiMap, MutableMultiMap}
 import izumi.fundamentals.collections.nonempty.{NEList, NESet}
 import izumi.fundamentals.graphs.WeakEdge
-import izumi.fundamentals.graphs.struct.IncidenceMatrix
+import izumi.fundamentals.graphs.struct.AdjacencyList
 import izumi.fundamentals.graphs.tools.gc.Tracer
 
 import scala.annotation.nowarn
@@ -150,7 +150,7 @@ class GraphQueries(
 
         val noDependencies = dependees.filter(_._2.forall(_.isEmpty)).keySet
 
-        val depmatrix = IncidenceMatrix(dependees.map { case (prev, succs) => (prev, succs.flatten) })
+        val depmatrix = AdjacencyList(dependees.map { case (prev, succs) => (prev, succs.flatten) })
         val reachable = new Tracer[DIKey]().trace(depmatrix, Set.empty, noDependencies)
 
         val allKeys = allOps.map(_._1.key).toSet

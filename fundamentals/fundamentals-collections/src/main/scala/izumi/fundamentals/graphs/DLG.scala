@@ -2,36 +2,38 @@ package izumi.fundamentals.graphs
 
 import izumi.fundamentals.graphs.GraphImpl.{DirectedGraphPred, DirectedGraphSucc}
 import izumi.fundamentals.graphs.GraphProperty.DirectedGraph
-import izumi.fundamentals.graphs.struct.IncidenceMatrix
+import izumi.fundamentals.graphs.struct.AdjacencyList
 import izumi.fundamentals.graphs.tools.{Toposort, ToposortLoopBreaker}
 
-final case class Linearized[N, +M](
+final case class DLG[N, +M](
   nodes: Seq[N],
   meta: GraphMeta[N, M],
 ) extends AbstractGraph[N, M]
   with DirectedGraph[N, M]
   with DirectedGraphSucc[N, M]
   with DirectedGraphPred[N, M] {
-  override lazy val successors: IncidenceMatrix[N] = IncidenceMatrix.linear(nodes)
+  override lazy val successors: AdjacencyList[N] = AdjacencyList.linear(nodes)
 
-  override lazy val predecessors: IncidenceMatrix[N] = IncidenceMatrix.linear(nodes.reverse)
+  override lazy val predecessors: AdjacencyList[N] = AdjacencyList.linear(nodes.reverse)
+
+  override def transposed: DirectedGraph[N, M] = DLG(nodes.reverse, meta)
 }
 
-object Linearized {
-  def fromDag[N, M](dag: DAG[N, M]): Linearized[N, M] = {
+object DLG {
+  def fromDag[N, M](dag: DAG[N, M]): DLG[N, M] = {
     Toposort.cycleBreaking(dag.predecessors, ToposortLoopBreaker.dontBreak) match {
       case Left(value) =>
-        throw new IllegalStateException(s"Non-linerizable DAG, this can't be. Error: $value; $dag")
+        throw new IllegalStateException(s"Non-linearizable DAG, this can't be. Error: $value; $dag")
       case Right(value) =>
-        Linearized(value, dag.meta)
+        DLG(value, dag.meta)
     }
   }
 
-  def from[N, M](dg: DG[N, M], breaker: ToposortLoopBreaker[N]): Either[ToposortError[N], Linearized[N, M]] = {
+  def from[N, M](dg: DG[N, M], breaker: ToposortLoopBreaker[N]): Either[ToposortError[N], DLG[N, M]] = {
     for {
       sorted <- Toposort.cycleBreaking(dg.predecessors, breaker)
     } yield {
-      Linearized(sorted, dg.meta)
+      DLG(sorted, dg.meta)
     }
   }
 }

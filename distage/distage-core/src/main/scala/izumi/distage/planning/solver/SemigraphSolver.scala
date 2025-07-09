@@ -8,7 +8,7 @@ import izumi.functional.IzEither.*
 import izumi.fundamentals.collections.ImmutableMultiMap
 import izumi.fundamentals.collections.IzCollections.*
 import izumi.fundamentals.collections.nonempty.NEList
-import izumi.fundamentals.graphs.struct.IncidenceMatrix
+import izumi.fundamentals.graphs.struct.AdjacencyList
 import izumi.fundamentals.graphs.{DG, GraphMeta, WeakEdge}
 
 import scala.annotation.{nowarn, tailrec}
@@ -273,7 +273,7 @@ object SemigraphSolver {
           (n, mapped)
       }
 
-      val result = IncidenceMatrix(rewritten ++ allRepls)
+      val result = AdjacencyList(rewritten ++ allRepls)
       val indexRemap: Map[MutSel[N], MutSel[N]] = finalElements.values.flatMap {
         f =>
           Seq((f, MutSel(f.key, None))) ++ result.links.keySet.filter(_.key == f.key).filterNot(_ == f).zipWithIndex.map {
@@ -297,14 +297,14 @@ object SemigraphSolver {
             (context, cleaned.toMap)
         }
 
-      val finalMatrix: IncidenceMatrix[MutSel[N]] = result.rewriteAll(indexRemap)
+      val finalMatrix: AdjacencyList[MutSel[N]] = result.rewriteAll(indexRemap)
       Right(Result(finalMatrix, indexRemap, outerReplMap))
     }
 
     private case class Result(
-      finalMatrix: IncidenceMatrix[MutSel[N]],
-      indexRemap: Map[MutSel[N], MutSel[N]],
-      outerReplMap: Map[MutSel[N], Map[N, MutSel[N]]],
+                               finalMatrix: AdjacencyList[MutSel[N]],
+                               indexRemap: Map[MutSel[N], MutSel[N]],
+                               outerReplMap: Map[MutSel[N], Map[N, MutSel[N]]],
     )
 
     private def doResolve(

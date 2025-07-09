@@ -3,7 +3,7 @@ package izumi.fundamentals.graphs.tools
 import izumi.fundamentals.graphs.ToposortError.{InconsistentInput, UnexpectedLoop}
 import ToposortLoopBreaker.ResolvedLoop
 import izumi.fundamentals.graphs.ToposortError
-import izumi.fundamentals.graphs.struct.IncidenceMatrix
+import izumi.fundamentals.graphs.struct.AdjacencyList
 
 import scala.annotation.nowarn
 
@@ -17,7 +17,7 @@ object ToposortLoopBreaker {
 
   final case class ResolvedLoop[T](breakAt: Set[T]) extends AnyVal
 
-  def dontBreak[T]: ToposortLoopBreaker[T] = (done, hasPreds) => Left(UnexpectedLoop(done, IncidenceMatrix(hasPreds)))
+  def dontBreak[T]: ToposortLoopBreaker[T] = (done, hasPreds) => Left(UnexpectedLoop(done, AdjacencyList(hasPreds)))
 
   def breakOn[T](select: Set[T] => Option[T]): ToposortLoopBreaker[T] = new SingleElementBreaker[T] {
     override def find(done: Seq[T], hasPreds: Map[T, Set[T]]): Option[T] = select(hasPreds.keySet)
@@ -35,10 +35,10 @@ object ToposortLoopBreaker {
             val found = Set(breakLoopAt)
             Right(ResolvedLoop(found))
           case None =>
-            Left(UnexpectedLoop(done, IncidenceMatrix(loopMembers)))
+            Left(UnexpectedLoop(done, AdjacencyList(loopMembers)))
         }
       } else {
-        Left(InconsistentInput(IncidenceMatrix(hasPreds)))
+        Left(InconsistentInput(AdjacencyList(hasPreds)))
       }
     }
 
