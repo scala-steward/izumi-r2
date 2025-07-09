@@ -16,6 +16,16 @@ final case class DAG[N, M] private (
   override def transposed: GraphProperty.DirectedGraph[N, M] = {
     new DAG(predecessors.transposed, successors.transposed, meta)
   }
+
+  def toposorted: Seq[N] = {
+    val roots = noPredcessors.toSeq
+
+    def go(out: Seq[N]): Seq[N] = {
+      out ++ out.flatMap(n => go(successors.links(n).toSeq))
+    }
+
+    go(roots)
+  }
 }
 
 object DAG extends GraphSyntax[DAG] {

@@ -1,7 +1,7 @@
 package izumi.fundamentals.graphs
 
 import izumi.fundamentals.graphs.GraphImpl.{DirectedGraphPred, DirectedGraphSucc}
-import izumi.fundamentals.graphs.GraphProperty.DirectedGraph
+import izumi.fundamentals.graphs.GraphProperty.{DirectedAcyclicGraph, DirectedGraph}
 import izumi.fundamentals.graphs.struct.{AdjacencyPredList, AdjacencySuccList}
 import izumi.fundamentals.graphs.tools.{Toposort, ToposortLoopBreaker}
 
@@ -9,7 +9,7 @@ final case class DLG[N, +M](
   nodes: Seq[N],
   meta: GraphMeta[N, M],
 ) extends AbstractGraph[N, M]
-  with DirectedGraph[N, M]
+  with DirectedAcyclicGraph[N, M]
   with DirectedGraphSucc[N, M]
   with DirectedGraphPred[N, M] {
   override lazy val successors: AdjacencySuccList[N] = AdjacencySuccList.linear(nodes)
@@ -17,6 +17,8 @@ final case class DLG[N, +M](
   override lazy val predecessors: AdjacencyPredList[N] = AdjacencyPredList.linear(nodes.reverse)
 
   override def transposed: DirectedGraph[N, M] = new DLG(nodes.reverse, meta)
+
+  override def toposorted: Seq[N] = nodes
 }
 
 object DLG {

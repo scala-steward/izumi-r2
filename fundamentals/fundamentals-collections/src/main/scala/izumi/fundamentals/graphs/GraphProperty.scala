@@ -9,5 +9,6 @@ object GraphProperty {
   }
 
   trait DirectedAcyclicGraph[N, +M] extends DirectedGraph[N, M] { this: AbstractGraph[N, M] =>
+    def toposorted: Seq[N]
   }
 }
