@@ -16,7 +16,7 @@ final case class DLG[N, +M](
 
   override lazy val predecessors: AdjacencyPredList[N] = AdjacencyPredList.linear(nodes.reverse)
 
-  override def transposed: DirectedGraph[N, M] = DLG(nodes.reverse, meta)
+  override def transposed: DirectedGraph[N, M] = new DLG(nodes.reverse, meta)
 }
 
 object DLG {

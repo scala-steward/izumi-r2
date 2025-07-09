@@ -17,7 +17,9 @@ final case class DG[N, M] private[izumi] (
   with DirectedGraphSucc[N, M]
   with DirectedGraphPred[N, M] {
 
-  override def transposed: DirectedGraph[N, M] = DAG(predecessors.transposed, successors.transposed, meta)
+  override def transposed: DirectedGraph[N, M] = {
+    new DG(predecessors.transposed, successors.transposed, meta)
+  }
 }
 
 object DG extends GraphSyntax[DG] {

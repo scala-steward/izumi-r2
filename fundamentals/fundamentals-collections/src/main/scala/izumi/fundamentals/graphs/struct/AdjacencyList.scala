@@ -63,7 +63,7 @@ object AdjacencyList extends AdjListSyntax {
 
     override type Self[N] = AdjacencyList[N]
 
-    override protected[struct] def factory[N1](links: Map[N1, Set[N1]]): AdjacencyList[N1] = AdjacencyList.factory(links)
+    override protected[struct] def factory[N2](links: Map[N2, Set[N2]]): AdjacencyList[N2] = AdjacencyList.factory(links)
 
     override def transposed: AdjacencyList[N1] = AdjacencyList.factory(transposedList)
   }

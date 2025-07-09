@@ -1,29 +1,30 @@
 package izumi.fundamentals.collections
 
 import scala.annotation.nowarn
-import scala.collection.compat.*
-import scala.collection.{MapView, View, mutable}
 
 @nowarn("msg=Unused import")
 final class IzMultiMaps[A, B](private val mmap: scala.collection.Map[A, Set[B]]) extends AnyVal {
+  import scala.collection.compat._
+
   def unwrap: List[(A, B)] = {
     mmap.view.flatMap { case (k, vs) => vs.map(v => (k, v)) }.toList
   }
 }
 
 @nowarn("msg=Unused import")
-final class IzIterOnceMappings[A, B](private val list: IterableOnce[(A, B)]) extends AnyVal {
+final class IzIterOnceMappings[A, B](private val list: scala.collection.compat.IterableOnce[(A, B)]) extends AnyVal {
   import scala.collection.compat._
 
   @nowarn("msg=deprecated")
   def toMultimapMut: MutableMultiMap[A, B] = {
-    list.iterator.foldLeft(new mutable.HashMap[A, mutable.Set[B]] with mutable.MultiMap[A, B]) {
+    list.iterator.foldLeft(new scala.collection.mutable.HashMap[A, scala.collection.mutable.Set[B]] with scala.collection.mutable.MultiMap[A, B]) {
       (acc, pair) =>
         acc.addBinding(pair._1, pair._2)
     }
   }
 
-  def toMultimapView: MapView[A, View[B]] = {
+  // don't add return type here, the types are different between scala versions
+  def toMultimapView = {
     toMultimapMut.view.mapValues(_.view)
   }
 

@@ -52,6 +52,7 @@ final class TraversalState(
 
   @nowarn("msg=Unused import")
   def next(finished: List[TimedFinalResult.Success], issues: List[TimedFinalResult.Failure]): TraversalState = {
+    import scala.collection.compat._
 
     val nextPreds = preds.without(finished.iterator.map(_.key).toSet)
 
@@ -76,7 +77,8 @@ final class TraversalState(
         CannotProgress(nextPreds)
       }
     } else {
-      Step(current.keys)
+      // don't change this to .keys, there was no such method in old scala
+      Step(current.map(_._1))
     }
 
     new TraversalState(

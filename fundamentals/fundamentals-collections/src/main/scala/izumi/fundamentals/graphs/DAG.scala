@@ -14,7 +14,7 @@ final case class DAG[N, M] private (
   with DirectedGraphSucc[N, M]
   with DirectedGraphPred[N, M] {
   override def transposed: GraphProperty.DirectedGraph[N, M] = {
-    DAG(predecessors.transposed, successors.transposed, meta)
+    new DAG(predecessors.transposed, successors.transposed, meta)
   }
 }
 
