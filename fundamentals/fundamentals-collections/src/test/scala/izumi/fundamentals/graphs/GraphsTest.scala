@@ -1,7 +1,7 @@
 package izumi.fundamentals.graphs
 
 import izumi.fundamentals.graphs.GraphTraversalError.UnrecoverableLoops
-import izumi.fundamentals.graphs.struct.AdjacencyList
+import izumi.fundamentals.graphs.struct.{AdjacencyList, AdjacencySuccList}
 import izumi.fundamentals.graphs.tools.cycles.LoopDetector.{Cycles, Impl, Loop}
 import izumi.fundamentals.graphs.tools.cycles.{LoopBreaker, LoopDetector}
 import org.scalatest.wordspec.AnyWordSpec
@@ -14,7 +14,7 @@ class GraphsTest extends AnyWordSpec {
     "support transposition" in {
       val transposed = directed.transposed
       val maybeOriginal = transposed.transposed
-      assert(maybeOriginal == directed)
+      assert(maybeOriginal.links == directed.links)
 
       assert(cyclic.transposed == cyclic)
     }
@@ -45,7 +45,7 @@ class GraphsTest extends AnyWordSpec {
         c
       }
 
-      assert(dagOut.map(_.successors) == Right(collectedDag))
+      assert(dagOut.map(_.successors) == Right(collectedDag.asSucc))
 
       val cyclicOut = for {
         g <- Right(DG.fromSucc(collectableCyclic.asSucc, GraphMeta(Map.empty[Int, String])))
@@ -54,7 +54,7 @@ class GraphsTest extends AnyWordSpec {
         c
       }
 
-      assert(cyclicOut.map(_.successors) == Right(collectedCyclic))
+      assert(cyclicOut.map(_.successors) == Right(collectedCyclic.asSucc))
     }
 
     "support weak edges" in {
@@ -67,7 +67,7 @@ class GraphsTest extends AnyWordSpec {
 
       assert(
         out.map(_.successors) == Right(
-          AdjacencyList(
+          AdjacencySuccList(
             3 -> Set(4),
             4 -> Set(5),
             5 -> Set(6),
@@ -98,10 +98,10 @@ class GraphsTest extends AnyWordSpec {
     "not break on acyclic matrices" in {
       assert(DAG.fromSucc(dag.asSucc, GraphMeta.empty).map {
         (d: DAG[Int, String]) => d.successors
-      } == Right(dag))
+      } == Right(dag.asSucc))
       assert(DAG.fromSucc(acyclic.asSucc, GraphMeta.empty).map {
         (d: DAG[Int, Nothing]) => d.successors
-      } == Right(acyclic))
+      } == Right(acyclic.asSucc))
     }
 
     "break on cyclic matrices" in {
@@ -123,7 +123,7 @@ class GraphsTest extends AnyWordSpec {
       }
       assert(DAG.fromPred(cyclic.asPred, GraphMeta.empty, breaker).map {
         (d: DAG[Int, Nothing]) => d.successors
-      } == Right(acyclic))
+      } == Right(acyclic.asSucc))
     }
   }
 }

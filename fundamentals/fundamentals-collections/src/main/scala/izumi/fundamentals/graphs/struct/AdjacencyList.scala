@@ -58,15 +58,15 @@ sealed trait AdjacencyList[N] {
 object AdjacencyList extends AdjListSyntax {
   override type Self[N] = AdjacencyList[N]
 
-  override protected[struct] def factory[N1](alinks: Map[N1, Set[N1]]): AdjacencyList[N1] = new AdjacencyList[N1] {
-    override def links: Map[N1, Set[N1]] = alinks
+  final case class AdjacencyListUnknown[N] private[struct] (links: Map[N, Set[N]]) extends AdjacencyList[N] {
+    override type Self[NN] = AdjacencyListUnknown[NN]
 
-    override type Self[N] = AdjacencyList[N]
+    def transposed: AdjacencyListUnknown[N] = new AdjacencyListUnknown[N](transposedList)
 
-    override protected[struct] def factory[N2](links: Map[N2, Set[N2]]): AdjacencyList[N2] = AdjacencyList.factory(links)
-
-    override def transposed: AdjacencyList[N1] = AdjacencyList.factory(transposedList)
+    override protected def factory[N1](links: Map[N1, Set[N1]]): AdjacencyListUnknown[N1] = new AdjacencyListUnknown(links)
   }
+
+  override protected[struct] def factory[N1](alinks: Map[N1, Set[N1]]): AdjacencyList[N1] = new AdjacencyListUnknown(alinks)
 }
 
 trait AdjListSyntax {

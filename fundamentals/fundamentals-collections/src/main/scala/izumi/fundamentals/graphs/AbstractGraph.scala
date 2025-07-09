@@ -23,6 +23,10 @@ object GraphMeta {
 
 trait AbstractGraph[N, +M] {
   def meta: GraphMeta[N, M]
+
+  def apply(nodeId: N): M = meta.nodes(nodeId)
+  def get(nodeId: N): Option[M] = meta.nodes.get(nodeId)
+  def values: Iterable[M] = meta.nodes.values
 }
 
 final case class Edge[N](predecessor: N, successor: N)
