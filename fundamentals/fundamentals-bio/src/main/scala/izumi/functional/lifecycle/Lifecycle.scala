@@ -496,7 +496,7 @@ object Lifecycle extends LifecycleInstances {
       }
 
       override def release(finalizersRef: kernel.Ref[F, List[F[Unit]]]): F[Unit] = {
-        F.flatMap(finalizersRef.get)(cats.instances.list.catsStdInstancesForList.sequence_(_)(F))
+        F.flatMap(finalizersRef.get)(cats.instances.list.catsStdInstancesForList.sequence_(_)(using F))
       }
 
       override def extract[B >: A](finalizersRef: kernel.Ref[F, List[F[Unit]]]): Left[F[B], Nothing] = {
