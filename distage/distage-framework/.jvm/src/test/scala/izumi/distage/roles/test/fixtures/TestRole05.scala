@@ -40,7 +40,8 @@ object TestRole05 extends RoleDescriptor {
   }
 
   final case class Rolelocal2SpecificConfig(bool: Boolean)
-  final case class Rolelocal1SpecificConfig(str: String)
+  case class Dummy(a: Int, b: String)
+  final case class Rolelocal1SpecificConfig(str: String, dummy: Option[Dummy])
 
   class Role05Module[F[_]: TagK] extends ModuleDef with ConfigModuleDef with RoleModuleDef {
     makeRole[TestRole05[F]]

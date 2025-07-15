@@ -35,6 +35,7 @@ class JsonSchemaGenerator {
 
     index.get(meta.id.toString).flatMap(_.asObject) match {
       case Some(value) =>
+        println(s"adding $value")
         value.add("$defs", JsonObject(index.toSeq*).toJson).toJson
       case _ =>
         JsonObject("$comment" -> Json.fromString(s"Failed to generate schema for $meta, please report as a bug")).toJson
@@ -50,7 +51,21 @@ class JsonSchemaGenerator {
 
     val schema = meta match {
       case cc: TCaseClass =>
-        val props = JsonObject(cc.fields.map { case ConfigField(n, t, doc) => (n, refOf(t.id).deepMerge(JsonObject(genDoc(doc).toSeq*)).toJson) }*).toJson
+        val props = JsonObject(
+          cc.fields
+            .map {
+              case ConfigField(n, t, doc) =>
+                val r = refOf(t)
+                val d = JsonObject(genDoc(doc).toSeq*)
+                val v = r.asObject match {
+                  case Some(value) =>
+                    value.deepMerge(d).toJson
+                  case None =>
+                    JsonObject("type" -> r).deepMerge(d).toJson
+                }
+                (n, v)
+            }*
+        ).toJson
         cc.fields.foreach {
           case ConfigField(_, tpe, _) =>
             generateSchema(tpe, defs)
@@ -67,7 +82,7 @@ class JsonSchemaGenerator {
         st.branches.foreach {
           case (_, tpe) => generateSchema(tpe, defs)
         }
-        val fields = Seq("anyOf" -> Json.fromValues(st.branches.map(_._2.id).map(refOf).map(_.toJson))) ++ genDoc(st.doc)
+        val fields = Seq("anyOf" -> Json.fromValues(st.branches.map(_._2).map(refOf))) ++ genDoc(st.doc)
         JsonObject(fields*).toJson
 
       case _: ConfigMetaType.TUnknown =>
@@ -111,15 +126,16 @@ class JsonSchemaGenerator {
         }
       case ConfigMetaType.TList(tpe) =>
         generateSchema(tpe, defs)
-        JsonObject("type" -> Json.fromString("array"), "items" -> refOf(tpe.id).toJson).toJson
+        JsonObject("type" -> Json.fromString("array"), "items" -> refOf(tpe)).toJson
 
       case ConfigMetaType.TSet(tpe) =>
         generateSchema(tpe, defs)
-        JsonObject("type" -> Json.fromString("array"), "items" -> refOf(tpe.id).toJson).toJson
+        JsonObject("type" -> Json.fromString("array"), "items" -> refOf(tpe)).toJson
 
       case ConfigMetaType.TOption(tpe) =>
-        generateSchema(tpe)
-        refOf(tpe.id).toJson
+        println(s"XXX: $tpe")
+        generateSchema(tpe, defs)
+        refOf(tpe)
 
       case m: ConfigMetaType.TMap =>
         JsonObject("$comment" -> Json.fromString(s"typed map type ${m.id} cannot be encoded with json schema")).toJson
@@ -130,8 +146,27 @@ class JsonSchemaGenerator {
     defs.update(id, schema)
   }
 
-  private def refOf(id: ConfigMetaTypeId): JsonObject = {
-    JsonObject("$ref" -> Json.fromString(s"#/$$defs/$id"))
+  private def refOf(id: ConfigMetaType): Json = {
+    val (kind, v) = id match {
+      case ConfigMetaType.TBasic(tpe) =>
+        tpe match {
+          case ConfigMetaBasicType.TString => ("type", "string")
+          case ConfigMetaBasicType.TDouble => ("type", "number")
+          case ConfigMetaBasicType.TFloat => ("type", "number")
+          case ConfigMetaBasicType.TBoolean => ("type", "boolean")
+
+          case ConfigMetaBasicType.TInt => ("type", "integer")
+          case ConfigMetaBasicType.TLong => ("type", "integer")
+          case ConfigMetaBasicType.TShort => ("type", "integer")
+
+          case _ =>
+            ("$ref", s"#/$$defs/${id.id}")
+        }
+      case _ =>
+        ("$ref", s"#/$$defs/${id.id}")
+    }
+    JsonObject(kind -> Json.fromString(v)).toJson
+
   }
 
   private def convertIntoType(path: Seq[String], accumulator: TLAccumulator): ConfigMetaType = {
