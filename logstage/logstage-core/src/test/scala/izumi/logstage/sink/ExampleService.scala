@@ -3,7 +3,6 @@ package izumi.logstage.sink
 import izumi.functional.bio.SyncSafe1
 import izumi.fundamentals.platform.language.IzScala
 import izumi.logstage.api.IzLogger
-import izumi.logstage.api.rendering.LogstageCodec
 import izumi.logstage.sink.ExampleService.ExampleDTO
 import logstage.LogIO
 import logstage.strict.LogIOStrict
@@ -98,20 +97,7 @@ class ExampleService(logger: IzLogger) {
 
   @nowarn("msg=missing interpolator")
   private def runStrict(): Unit = {
-    final case class NoInstance(x: Int)
-    final case class YesInstance(x: Int)
-    object YesInstance {
-      implicit val codec: LogstageCodec[YesInstance] = _ `write` _.x
-    }
-    sealed trait Sealed
-    object Sealed {
-      implicit val codec: LogstageCodec[Sealed] = (writer, s) =>
-        s match {
-          case Branch(x) => writer.write(s"""Branch("$x")""")
-        }
-      final case class Branch(x: String) extends Sealed
-    }
-
+    import izumi.logstage.api.Fixture.*
     val logStrict: LogIOStrict[Function0] = LogIOStrict.fromLogger(logger)
     import Assertions.*
 
@@ -137,6 +123,9 @@ class ExampleService(logger: IzLogger) {
       val map = Map("Str" -> Sealed.Branch("subtypes are fine in strict"))
       logStrict.crit(s"Suspended message: clap your hands! $map")
     }
+    val nullsOk = {
+      logStrict.crit(s"Suspended message: clap your hands! ${null}")
+    }
     val rawOk = {
       val map = Map("Str" -> Sealed.Branch("subtypes are fine in strict"))
       logStrict.raw.crit(s"Suspended raw message: clap your hands! $map")
@@ -151,6 +140,7 @@ class ExampleService(logger: IzLogger) {
     mapsOk()
     rawOk()
     rawWithCtxOk()
+    nullsOk()
   }
 
   private def makeException(message: String): RuntimeException = {

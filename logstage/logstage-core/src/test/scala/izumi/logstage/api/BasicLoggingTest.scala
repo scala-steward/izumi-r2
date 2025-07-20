@@ -1,8 +1,6 @@
 package izumi.logstage.api
 
 import izumi.fundamentals.platform.language.Quirks.Discarder
-
-import scala.annotation.nowarn
 import izumi.fundamentals.platform.language.{CodePosition, IzScala, SourceFilePosition}
 import izumi.logstage.api.Log.*
 import izumi.logstage.api.rendering.{LogstageCodec, RenderingOptions, StringRenderingPolicy}
@@ -10,6 +8,7 @@ import izumi.logstage.api.strict.IzStrictLogger
 import org.scalatest.exceptions.TestFailedException
 import org.scalatest.wordspec.AnyWordSpec
 
+import scala.annotation.nowarn
 import scala.util.Random
 
 class BasicLoggingTest extends AnyWordSpec {
@@ -73,6 +72,30 @@ class BasicLoggingTest extends AnyWordSpec {
       }
       assert(message3.template.parts.toList == List("Hello\nthere!\n"))
       assert(message3.args == List.empty)
+    }
+
+    "correctly search codecs for wildcards" in {
+      import Fixture.*
+      final class SealedHolder[T <: Sealed](val value: T)
+      def withWildcard1(some: Some[?]): Message = {
+        Message(s"wildcard: ${some.value}")
+      }
+      def withWildcard2(sld: SealedHolder[? <: Sealed]): Message = {
+        Message(s"wildcard: ${sld.value}")
+      }
+      def withWildcard3(sld: SealedHolder[?]): Message = {
+        Message(s"wildcard: ${sld.value}")
+      }
+
+      val msg1 = withWildcard1(Some(1))
+      val msg2 = withWildcard2(new SealedHolder(Sealed.Branch("")))
+      val msg3 = withWildcard3(new SealedHolder(Sealed.Branch("")))
+
+      assert(msg1.args.head.codec.isEmpty)
+      assert(msg2.args.head.codec.contains(Sealed.codec))
+      if (IzScala.scalaRelease.major >= 3) {
+        assert(msg3.args.head.codec.contains(Sealed.codec))
+      }
     }
   }
 
