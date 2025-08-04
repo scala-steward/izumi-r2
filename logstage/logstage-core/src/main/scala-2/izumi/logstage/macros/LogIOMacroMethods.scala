@@ -34,6 +34,10 @@ object LogIOMacroMethods {
     doLog(c)(message, Level.Crit)
   }
 
+  def scAuditMacro[F[_]](c: blackbox.Context { type PrefixType = AbstractLogIO[F] })(message: c.Expr[String]): c.Expr[F[Unit]] = {
+    doLog(c)(message, Level.Audit)
+  }
+
   def scLogValues[F[_]](c: blackbox.Context { type PrefixType = AbstractLogIO[F] })(level: c.Expr[Level])(values: c.Expr[Any]*): c.Expr[F[Unit]] = {
     doLogValues(c)(level, values)
   }

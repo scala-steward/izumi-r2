@@ -16,6 +16,8 @@ class LogSinkLegacySlf4jImpl(
     val slf4jLogger = getSlf4jLogger(e)
 
     e.context.dynamic.level match {
+      case Log.Level.Audit =>
+        log(slf4jLogger.error, e)
       case Log.Level.Crit =>
         if (slf4jLogger.isErrorEnabled) {
           log(slf4jLogger.error, e)

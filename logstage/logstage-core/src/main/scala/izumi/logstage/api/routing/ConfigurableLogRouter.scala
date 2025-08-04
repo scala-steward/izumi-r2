@@ -8,6 +8,7 @@ import izumi.logstage.DebugProperties
 import izumi.logstage.api.Log
 import izumi.logstage.api.config.*
 import izumi.logstage.api.logger.{LogQueue, LogRouter, LogSink}
+import izumi.logstage.api.rendering.RenderingPolicy
 import izumi.logstage.sink.{ConsoleSink, FallbackConsoleSink}
 
 import scala.annotation.nowarn
@@ -23,7 +24,13 @@ class ConfigurableLogRouter(
       .config(entry)
       .sinks
 
-    sinks.foreach {
+    val withAudit = if (entry.context.dynamic.level == Log.Level.Audit && sinks.isEmpty) {
+      Seq(ConfigurableLogRouter.fallbackSink)
+    } else {
+      sinks
+    }
+
+    withAudit.foreach {
       sink =>
         try {
           buffer.append(entry, sink)
@@ -46,7 +53,9 @@ class ConfigurableLogRouter(
 }
 
 object ConfigurableLogRouter {
-  private final val fallback: TrivialLogger = TrivialLogger.make[FallbackConsoleSink](DebugProperties.`izumi.logstage.routing.log-failures`.name, Config(forceLog = true))
+  private final val fallback: TrivialLogger =
+    TrivialLogger.make[ConfigurableLogRouter](DebugProperties.`izumi.logstage.routing.log-failures`.name, Config(forceLog = true))
+  private final val fallbackSink = new FallbackConsoleSink(RenderingPolicy.colorlessPolicy(), fallback)
 
   def apply(
     rootThreshold: Log.Level = Log.Level.Trace,
@@ -68,8 +77,6 @@ object ConfigurableLogRouter {
   @nowarn("msg=Unused import")
   def apply(rootThreshold: Log.Level, sinks: Seq[LogSink], levels: Map[String, LoggingTarget], buffer: LogQueue): ConfigurableLogRouter = {
     import izumi.fundamentals.collections.IzCollections.*
-
-    import scala.collection.compat.*
 
     def toConfig(target: LoggingTarget) = {
       target match {

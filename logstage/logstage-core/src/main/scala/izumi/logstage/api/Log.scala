@@ -35,6 +35,7 @@ object Log {
         case 'w' => Log.Level.Warn
         case 'e' => Log.Level.Error
         case 'c' => Log.Level.Crit
+        case 'a' => Log.Level.Audit
         case _ => Log.Level.Info
       }
     }
@@ -61,6 +62,10 @@ object Log {
 
     case object Crit extends Level {
       protected val asInt = 50
+    }
+
+    case object Audit extends Level {
+      protected val asInt = 60
     }
 
   }

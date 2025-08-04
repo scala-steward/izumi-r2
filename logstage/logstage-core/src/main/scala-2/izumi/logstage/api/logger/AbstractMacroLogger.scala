@@ -22,6 +22,7 @@ trait AbstractMacroLogger { this: AbstractLogger { type EncMode <: Singleton } =
   final def warn(message: String): Unit = macro scWarnMacro
   final def error(message: String): Unit = macro scErrorMacro
   final def crit(message: String): Unit = macro scCritMacro
+  final def audit(message: String): Unit = macro scAuditMacro
 
   final def logValues(level: Level)(values: Any*): Unit = macro scLogValues
 

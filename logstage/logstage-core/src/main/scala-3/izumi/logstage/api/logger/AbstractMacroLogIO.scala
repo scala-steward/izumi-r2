@@ -15,6 +15,7 @@ trait AbstractMacroLogIO[F[_]] { this: AbstractLogIO[F] { type EncMode <: Single
   transparent inline final def warn(inline message: String): F[Unit] = logImpl(Log.Level.Warn, message)
   transparent inline final def error(inline message: String): F[Unit] = logImpl(Log.Level.Error, message)
   transparent inline final def crit(inline message: String): F[Unit] = logImpl(Log.Level.Crit, message)
+  transparent inline final def audit(inline message: String): F[Unit] = logImpl(Log.Level.Audit, message)
 
   transparent inline final def logValues(level: Log.Level)(inline values: Any*): F[Unit] = {
     ${ LogValuesMacro.logValuesIO[F, EncMode]('{ this }, '{ level }, '{ values }) }

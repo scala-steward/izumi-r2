@@ -16,6 +16,7 @@ trait AbstractMacroLogIO[F[_]] { this: AbstractLogIO[F] { type EncMode <: Single
   final def warn(message: String): F[Unit] = macro scWarnMacro[F]
   final def error(message: String): F[Unit] = macro scErrorMacro[F]
   final def crit(message: String): F[Unit] = macro scCritMacro[F]
+  final def audit(message: String): F[Unit] = macro scAuditMacro[F]
 
   final def logValues(level: Level)(values: Any*): F[Unit] = macro scLogValues[F]
 

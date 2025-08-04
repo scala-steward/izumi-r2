@@ -46,4 +46,5 @@ trait LogStage {
   val Warn: api.Log.Level.Warn.type = api.Log.Level.Warn
   val Error: api.Log.Level.Error.type = api.Log.Level.Error
   val Crit: api.Log.Level.Crit.type = api.Log.Level.Crit
+  val Audit: api.Log.Level.Audit.type = api.Log.Level.Audit
 }

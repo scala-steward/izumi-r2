@@ -56,5 +56,6 @@ package object logstage extends LogStage {
   override final val Warn: api.Log.Level.Warn.type = api.Log.Level.Warn
   override final val Error: api.Log.Level.Error.type = api.Log.Level.Error
   override final val Crit: api.Log.Level.Crit.type = api.Log.Level.Crit
+  override final val Audit: api.Log.Level.Audit.type = api.Log.Level.Audit
 
 }

@@ -33,6 +33,9 @@ object LoggerMacroMethods {
   def scCritMacro(c: blackbox.Context { type PrefixType = AbstractLogger })(message: c.Expr[String]): c.Expr[Unit] = {
     doLog(c)(message, Level.Crit)
   }
+  def scAuditMacro(c: blackbox.Context { type PrefixType = AbstractLogger })(message: c.Expr[String]): c.Expr[Unit] = {
+    doLog(c)(message, Level.Audit)
+  }
 
   def scLogValues(c: blackbox.Context { type PrefixType = AbstractLogger })(level: c.Expr[Level])(values: c.Expr[Any]*): c.Expr[Unit] = {
     doLogValues(c)(level, values)

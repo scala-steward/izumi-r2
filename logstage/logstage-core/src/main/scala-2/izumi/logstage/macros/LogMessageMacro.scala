@@ -32,6 +32,9 @@ object LogMessageMacro {
         c.universe.reify(Level.Error)
       case Level.Crit =>
         c.universe.reify(Level.Crit)
+      case Level.Audit =>
+        c.universe.reify(Level.Audit)
+
     }
   }
 

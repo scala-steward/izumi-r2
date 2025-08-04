@@ -2,12 +2,11 @@ package izumi.distage.roles.launcher
 
 import cats.effect.kernel.Async
 import izumi.distage.framework.DebugProperties
-import izumi.functional.quasi.QuasiIO
 import izumi.functional.bio.{Async2, F}
+import izumi.functional.quasi.QuasiIO
 import izumi.fundamentals.platform.console.TrivialLogger
 import izumi.fundamentals.platform.functional.Identity
 import izumi.logstage.api.IzLogger
-import izumi.logstage.sink.FallbackConsoleSink
 
 import java.util.concurrent.CountDownLatch
 import scala.concurrent.Promise
@@ -47,7 +46,7 @@ trait AppShutdownStrategy[F[_]] extends AppShutdownInitiator {
 }
 
 object AppShutdownStrategy {
-  private val logger = TrivialLogger.make[FallbackConsoleSink](DebugProperties.`izumi.debug.distage.shutdown`.name)
+  private val logger = TrivialLogger.make[AppShutdownStrategy.type](DebugProperties.`izumi.debug.distage.shutdown`.name)
 
   private def makeShutdownHook(logger: IzLogger, cont: () => Unit): Thread = {
     new Thread(
