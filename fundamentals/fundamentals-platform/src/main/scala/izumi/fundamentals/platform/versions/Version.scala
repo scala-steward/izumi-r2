@@ -3,6 +3,7 @@ package izumi.fundamentals.platform.versions
 import izumi.fundamentals.collections.nonempty.NEList
 
 import scala.annotation.tailrec
+import scala.util.Try
 
 trait Version {}
 
@@ -78,102 +79,109 @@ object Version {
     }
   }
 
-  implicit val canonicalOrder: Ordering[Canonical] = new Ordering[Canonical] {
-    def compare(x: Canonical, y: Canonical): Int = {
-      val componentComparison = compareComponents(x.components, y.components)
-      if (componentComparison != 0) {
-        componentComparison
-      } else {
-        compareQualifiers(x.qualifiers, y.qualifiers)
-      }
-    }
-
-    private def compareComponents(x: NEList[Int], y: NEList[Int]): Int = {
-      // not available on 2.12
-      // Ordering.Implicits.seqOrdering[Seq, Int].compare(x.toList, y.toList)
-
-      Ordering[Iterable[Int]].compare(x.toIterable, y.toIterable)
-    }
-
-    @tailrec
-    private def compareQualifiers(x: List[String], y: List[String]): Int = {
-      (x, y) match {
-        case (Nil, Nil) => 0
-        case (Nil, _) => 1 // No qualifier is considered newer than having qualifiers
-        case (_, Nil) => -1
-        case (xh :: xt, yh :: yt) =>
-          val cmp = xh.compare(yh)
-          if (cmp != 0) cmp else compareQualifiers(xt, yt)
-      }
-    }
-  }
-
-  implicit val semverOrder: Ordering[Semver] = new Ordering[Semver] {
-    def compare(x: Semver, y: Semver): Int = {
-      val majorCmp = x.major.compare(y.major)
-      if (majorCmp != 0) return majorCmp
-
-      val minorCmp = x.minor.compare(y.minor)
-      if (minorCmp != 0) return minorCmp
-
-      val patchCmp = x.patch.compare(y.patch)
-      if (patchCmp != 0) return patchCmp
-
-      comparePreRelease(x.pre, y.pre)
-    }
-
-    private def comparePreRelease(x: Option[String], y: Option[String]): Int = {
-      (x, y) match {
-        case (None, None) => 0
-        case (None, Some(_)) => 1 // No pre-release is considered newer than having pre-release
-        case (Some(_), None) => -1
-        case (Some(xPre), Some(yPre)) => comparePreReleaseIdentifiers(xPre, yPre)
-      }
-    }
-
-    private def comparePreReleaseIdentifiers(x: String, y: String): Int = {
-      val xParts = x.split("\\.")
-      val yParts = y.split("\\.")
-
-      @tailrec
-      def compareParts(i: Int): Int = {
-        if (i >= xParts.length && i >= yParts.length) 0
-        else if (i >= xParts.length) -1
-        else if (i >= yParts.length) 1
-        else {
-          val xPart = xParts(i)
-          val yPart = yParts(i)
-
-          (xPart.toIntOption, yPart.toIntOption) match {
-            case (Some(xNum), Some(yNum)) =>
-              val cmp = xNum.compare(yNum)
-              if (cmp != 0) cmp else compareParts(i + 1)
-            case (Some(_), None) => -1 // Numeric identifiers have lower precedence
-            case (None, Some(_)) => 1
-            case (None, None) =>
-              val cmp = xPart.compare(yPart)
-              if (cmp != 0) cmp else compareParts(i + 1)
-          }
+  object Canonical {
+    implicit val canonicalOrder: Ordering[Canonical] = new Ordering[Canonical] {
+      def compare(x: Canonical, y: Canonical): Int = {
+        val componentComparison = compareComponents(x.components, y.components)
+        if (componentComparison != 0) {
+          componentComparison
+        } else {
+          compareQualifiers(x.qualifiers, y.qualifiers)
         }
       }
 
-      compareParts(0)
+      private def compareComponents(x: NEList[Int], y: NEList[Int]): Int = {
+        // not available on 2.12
+        // Ordering.Implicits.seqOrdering[Seq, Int].compare(x.toList, y.toList)
+
+        Ordering[Iterable[Int]].compare(x.toIterable, y.toIterable)
+      }
+
+      @tailrec
+      private def compareQualifiers(x: List[String], y: List[String]): Int = {
+        (x, y) match {
+          case (Nil, Nil) => 0
+          case (Nil, _) => 1 // No qualifier is considered newer than having qualifiers
+          case (_, Nil) => -1
+          case (xh :: xt, yh :: yt) =>
+            val cmp = xh.compare(yh)
+            if (cmp != 0) cmp else compareQualifiers(xt, yt)
+        }
+      }
     }
   }
 
-  implicit val unknownOrder: Ordering[Unknown] = new Ordering[Unknown] {
-    def compare(x: Unknown, y: Unknown): Int = x.version.compare(y.version)
+  object Semver {
+
+    implicit val semverOrder: Ordering[Semver] = new Ordering[Semver] {
+      def compare(x: Semver, y: Semver): Int = {
+        val majorCmp = x.major.compare(y.major)
+        if (majorCmp != 0) return majorCmp
+
+        val minorCmp = x.minor.compare(y.minor)
+        if (minorCmp != 0) return minorCmp
+
+        val patchCmp = x.patch.compare(y.patch)
+        if (patchCmp != 0) return patchCmp
+
+        comparePreRelease(x.pre, y.pre)
+      }
+
+      private def comparePreRelease(x: Option[String], y: Option[String]): Int = {
+        (x, y) match {
+          case (None, None) => 0
+          case (None, Some(_)) => 1 // No pre-release is considered newer than having pre-release
+          case (Some(_), None) => -1
+          case (Some(xPre), Some(yPre)) => comparePreReleaseIdentifiers(xPre, yPre)
+        }
+      }
+
+      private def comparePreReleaseIdentifiers(x: String, y: String): Int = {
+        val xParts = x.split("\\.")
+        val yParts = y.split("\\.")
+
+        @tailrec
+        def compareParts(i: Int): Int = {
+          if (i >= xParts.length && i >= yParts.length) 0
+          else if (i >= xParts.length) -1
+          else if (i >= yParts.length) 1
+          else {
+            val xPart = xParts(i)
+            val yPart = yParts(i)
+
+            (Try(xPart.toInt).toOption, Try(yPart.toInt).toOption) match {
+              case (Some(xNum), Some(yNum)) =>
+                val cmp = xNum.compare(yNum)
+                if (cmp != 0) cmp else compareParts(i + 1)
+              case (Some(_), None) => -1 // Numeric identifiers have lower precedence
+              case (None, Some(_)) => 1
+              case (None, None) =>
+                val cmp = xPart.compare(yPart)
+                if (cmp != 0) cmp else compareParts(i + 1)
+            }
+          }
+        }
+
+        compareParts(0)
+      }
+    }
+  }
+
+  object Unknown {
+    implicit val unknownOrder: Ordering[Unknown] = new Ordering[Unknown] {
+      def compare(x: Unknown, y: Unknown): Int = x.version.compare(y.version)
+    }
   }
 
   implicit val versionOrder: Ordering[Version] = new Ordering[Version] {
     def compare(x: Version, y: Version): Int = {
       (x, y) match {
-        case (xc: Canonical, yc: Canonical) => canonicalOrder.compare(xc, yc)
-        case (xs: Semver, ys: Semver) => semverOrder.compare(xs, ys)
-        case (xu: Unknown, yu: Unknown) => unknownOrder.compare(xu, yu)
+        case (xc: Canonical, yc: Canonical) => Canonical.canonicalOrder.compare(xc, yc)
+        case (xs: Semver, ys: Semver) => Semver.semverOrder.compare(xs, ys)
+        case (xu: Unknown, yu: Unknown) => Unknown.unknownOrder.compare(xu, yu)
 
-        case (xs: Semver, yc: Canonical) => canonicalOrder.compare(xs.canonical, yc)
-        case (xc: Canonical, ys: Semver) => canonicalOrder.compare(xc, ys.canonical)
+        case (xs: Semver, yc: Canonical) => Canonical.canonicalOrder.compare(xs.canonical, yc)
+        case (xc: Canonical, ys: Semver) => Canonical.canonicalOrder.compare(xc, ys.canonical)
 
         case (xc: Canonical, yu: Unknown) => xc.toString.compare(yu.version)
         case (xu: Unknown, yc: Canonical) => xu.version.compare(yc.toString)
