@@ -89,7 +89,10 @@ object Version {
     }
 
     private def compareComponents(x: NEList[Int], y: NEList[Int]): Int = {
-      Ordering.Implicits.seqOrdering[Seq, Int].compare(x.toList, y.toList)
+      // not available on 2.12
+      // Ordering.Implicits.seqOrdering[Seq, Int].compare(x.toList, y.toList)
+
+      Ordering[Iterable[Int]].compare(x.toIterable, y.toIterable)
     }
 
     @tailrec
