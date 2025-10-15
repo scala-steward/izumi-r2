@@ -10,11 +10,11 @@ import izumi.distage.model.definition.{Id, ImplDef, Lifecycle, ModuleDef}
 import izumi.distage.model.plan.Roots
 import izumi.distage.model.provisioning.proxies.DistageProxy
 import izumi.distage.modules.platform.CatsIOPlatformDependentSupportModule
+import izumi.fundamentals.platform.assertions.ScalatestGuards
 import izumi.fundamentals.platform.functional.Identity
 import org.scalatest.GivenWhenThen
 import org.scalatest.exceptions.TestFailedException
 import org.scalatest.wordspec.AnyWordSpec
-import izumi.fundamentals.platform.assertions.ScalatestGuards
 
 import scala.annotation.unused
 import scala.concurrent.ExecutionContext

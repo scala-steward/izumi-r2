@@ -43,8 +43,6 @@ object StaticPluginLoader {
           Symbol.requiredClass(canonicalName)
         }
 
-        val tpe = clsSym.typeRef
-
         val term = if (clsSym.flags.is(Flags.Module) || clsSym.isTerm) {
           val objRef = clsSym.companionModule.termRef
           Ref.term(objRef)

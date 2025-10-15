@@ -1,13 +1,9 @@
 package izumi.distage.constructors
 
-import izumi.distage.model.providers.Functoid
-import izumi.distage.reflection.macros.FunctoidMacro
 import izumi.distage.model.reflection.Provider.ProviderType
 import izumi.fundamentals.platform.exceptions.IzThrowable.toRichThrowable
 import izumi.fundamentals.reflection.ReflectiveCall
 
-import scala.collection.immutable.{ArraySeq, Queue}
-import scala.collection.mutable
 import scala.quoted.{Expr, Quotes, Type}
 import scala.util.control.NonFatal
 
@@ -17,8 +13,7 @@ object FactoryConstructorMacro {
     import qctx.reflect.*
 
     val util = new ConstructorUtil[qctx.type]()
-    import util.{MemberRepr, ParamRepr, ParamReprLists, factoryUtil}
-    import factoryUtil.{FactoryProductData, InjectedDependencyParameter, MethodParameter}
+    import util.{MemberRepr, ParamRepr, factoryUtil}
     util.requireConcreteTypeConstructor(TypeRepr.of[R], "FactoryConstructor")
 
     val factoryContext = new ConstructorContext[R, qctx.type, util.type](util)

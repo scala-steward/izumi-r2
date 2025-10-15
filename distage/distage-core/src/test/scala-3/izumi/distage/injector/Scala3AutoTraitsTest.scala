@@ -1,6 +1,6 @@
 package izumi.distage.injector
 
-import distage.{FactoryConstructor, ModuleDef, PlannerInput, TraitConstructor, With}
+import distage.{ModuleDef, PlannerInput, TraitConstructor, With}
 import izumi.distage.fixtures.Scala3TraitCases.*
 import izumi.distage.model.reflection.TypedRef
 import org.scalatest.wordspec.AnyWordSpec
@@ -79,8 +79,10 @@ class Scala3AutoTraitsTest extends AnyWordSpec with MkInjector {
     }
 
     "support trait refinement" in {
-      assert(TraitConstructor[ATrait1 { def a: 5 }].get.unsafeApply(Seq(TypedRef.byName[5](5))).asInstanceOf[ATrait1].a == 5)
-      assert(TraitConstructor[ATrait1 { val a: 5 }].get.unsafeApply(Seq(TypedRef.byName[5](5))).asInstanceOf[ATrait1].a == 5)
+      val withDef = TraitConstructor[ATrait1 { def a: 5 }].get.unsafeApply(Seq(TypedRef.byName[5](5))).asInstanceOf[ATrait1].a
+      val withVal = TraitConstructor[ATrait1 { val a: 5 }].get.unsafeApply(Seq(TypedRef.byName[5](5))).asInstanceOf[ATrait1].a
+      assert(withDef == 5)
+      assert(withVal == 5)
     }
 
     "support factories" in {

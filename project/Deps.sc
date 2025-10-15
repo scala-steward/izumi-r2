@@ -150,7 +150,7 @@ object Izumi {
   // DON'T REMOVE, these variables are read from CI build (build.sh)
   final val scala212 = ScalaVersion("2.12.20")
   final val scala213 = ScalaVersion("2.13.16")
-  final val scala300 = ScalaVersion("3.3.6")
+  final val scala300 = ScalaVersion("3.7.2")
 
   object Groups {
     final val fundamentals = Set(Group("fundamentals"))
@@ -282,18 +282,33 @@ object Izumi {
         "libraryDependencies" += s""""io.7mind.izumi.sbt" % "sbtgen_2.12" % "${Version.SbtGen.value}"""".raw,
       )
 
-      val scala2Wconf = Seq(
+      val scala2Wconf = Seq[Const](
         "-Wconf:msg=parameter.*x\\\\$4.in.anonymous.function.is.never.used:silent",
         "-Wconf:msg=constructor.modifiers.are.assumed.by.synthetic.*method:silent",
         "-Wconf:msg=package.object.inheritance:silent",
         "-Wconf:cat=lint-eta-sam:silent",
       )
-      val scala3Wconf = Seq(
+      val scala3Wconf = Seq[Const](
+        // enable all warnings except -Wtostring-interpolated, -Wshadow and -Wsafe-init which slows down compilation to a crawl
+        "-Wenum-comment-discard",
+        "-Wimplausible-patterns",
+        "-Wnonunit-statement",
+        // "-Wsafe-init",
+        // "-Wshadow:all",
+        // "-Wtostring-interpolated",
+        "-WunstableInlineAccessors",
+        "-Wunused:all",
+        "-Wvalue-discard",
+        //
         "-Wconf:any:verbose",
+        "-Wconf:name=UnusedNonUnitValue:silent",
+        "-Wconf:name=ValueDiscarding:silent",
+        "-Wconf:msg=eta-expanded even though:silent", // disable harmful anti-SAM warning
+        //
+        "-Wconf:msg=Ignoring .this. qualifier:silent",
         "-Wconf:msg=.this. qualifier will be deprecated:silent",
         "-Wconf:msg=scala.compiletime.uninitialized:silent",
         "-Wconf:msg=`using` clause:silent",
-        "-Wconf:msg=eta-expanded even though:silent",
         "-Wconf:msg=The syntax ..function:silent",
         "-Wconf:msg=method contains is not declared infix:silent",
         "-Wconf:msg=method in is not declared infix:silent",
@@ -303,18 +318,18 @@ object Izumi {
         "testOptions" in SettingScope.Test += """Tests.Argument("-oDF")""".raw,
         "scalacOptions" ++= Seq(
           SettingKey(Some(scala212), None) :=
-            Seq[Const]("-Wconf:any:error") ++ Defaults.Scala212Options,
+            Seq[Const]("-Wconf:any:error") ++ Defaults.Scala212Options ++ scala2Wconf,
           SettingKey(Some(scala213), None) :=
-            (Seq[Const]("-Wconf:any:error") ++ Defaults.Scala213Options ++ Seq[Const]("-Wunused:-synthetics")).filterNot(_ == ("-Xsource:3-cross": Const)),
+            (Seq[Const]("-Wconf:any:error") ++ Defaults.Scala213Options ++ Seq[Const]("-Wunused:-synthetics")).filterNot(_ == ("-Xsource:3-cross": Const)) ++ scala2Wconf,
           SettingKey(Some(scala300), None) :=
             Seq[Const](
-              "-language:3.4"
-            ) ++ Defaults.Scala3Options,
+              "-source:3.7",
+              "-Xkind-projector:underscores",
+            ) ++ Defaults.Scala3Options
+              .filterNot(x => x == ("-Ykind-projector:underscores": Const) || x == ("-Xkind-projector:underscores": Const))
+              .filterNot(scala3Wconf.contains(_))
+            ++ scala3Wconf,
           SettingKey.Default := Const.EmptySeq,
-        ),
-        "scalacOptions" ++= Seq(
-          SettingKey(Some(scala300), None) := scala3Wconf,
-          SettingKey.Default := scala2Wconf,
         ),
         "scalacOptions" -= "-Wconf:any:warning",
         "scalacOptions" += "-Wconf:cat=deprecation:warning",
@@ -433,6 +448,16 @@ object Izumi {
     SettingKey(Some(scala300), None) := Const.EmptySeq,
     SettingKey.Default := "(Compile / doc / sources).value".raw,
   )
+  // Workaround for https://github.com/scala/scala3/issues/23698
+  private val disableUnidocOnScala3 =
+    """ScalaUnidoc / unidoc /unidocAllSources := {
+      |  val filess = (ScalaUnidoc/ unidoc /unidocAllSources).value
+      |  if(scalaVersion.value.startsWith("2.")) {
+      |    filess
+      |  } else {
+      |    filess.map(_.filterNot(_.toString.contains("/fundamentals-orphans/")))
+      |  }
+      |}""".stripMargin
 
   final lazy val fundamentals = Aggregate(
     name = Projects.fundamentals.id,
@@ -469,9 +494,7 @@ object Izumi {
         name = Projects.fundamentals.orphans,
         libs = allMonadsOptional ++ Seq(zio_interop_cats in Scope.Optional.all),
         depends = Seq(Projects.fundamentals.basics),
-        settings = Seq(
-          disableScaladocOnScala3
-        ),
+        settings = Seq.empty,
       ),
       Artifact(
         name = Projects.fundamentals.language,
@@ -564,11 +587,7 @@ object Izumi {
           Projects.fundamentals.collections,
           Projects.fundamentals.basics,
         ),
-        settings = Seq(
-          // DottyDoc crashes on fundamentals-bio (https://github.com/lampepfl/dotty/issues/18832)
-          // since trifunctor was removed (d3deae9aa3aed329dff03fa3b531d33843a5982a)
-          disableScaladocOnScala3
-        ),
+        settings = Seq.empty,
       ),
     ),
     pathPrefix = Projects.fundamentals.basePath,
@@ -646,7 +665,7 @@ object Izumi {
       Artifact(
         name = Projects.distage.plugins,
         libs = Seq(fast_classpath_scanner in Scope.Compile.all) ++ Seq(scala_reflect) ++
-          Seq( /* for ZIOResourcesZManagedTestJvm */ zio_managed, zio_interop_cats, cats_effect).map(_ in Scope.Test.jvm),
+          Seq( /* for ZIOResourcesZManagedTestJvm */ zio_managed, zio_interop_cats, cats_effect, javaXInject).map(_ in Scope.Test.jvm),
         depends = Seq(Projects.distage.coreApi).map(_ in Scope.Compile.all) ++
           Seq(Projects.distage.core, Projects.distage.config, Projects.logstage.core).map(_ in Scope.Test.all) ++
           Seq( /* for ZIOResourcesZManagedTestJvm */ Projects.fundamentals.platform tin Scope.Test.jvm),
@@ -815,6 +834,7 @@ object Izumi {
           SettingDef.RawSettingDef(
             "ScalaUnidoc / unidoc / unidocProjectFilter := inAggregates(`fundamentals-jvm`, transitive = true) || inAggregates(`distage-jvm`, transitive = true) || inAggregates(`logstage-jvm`, transitive = true)"
           ),
+          SettingDef.RawSettingDef(disableUnidocOnScala3),
           SettingDef.RawSettingDef("""Compile / ParadoxMaterialThemePlugin.autoImport.paradoxMaterialTheme ~= {
             _.withCopyright("7mind.io")
               .withRepository(uri("https://github.com/7mind/izumi"))

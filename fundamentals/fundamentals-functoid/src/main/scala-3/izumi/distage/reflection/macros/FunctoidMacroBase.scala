@@ -9,9 +9,14 @@ import scala.language.implicitConversions
 import scala.quoted.{Expr, Quotes, Type}
 
 trait FunctoidMacroBase[Ftoid[+X] <: AbstractFunctoid[X, Ftoid]] {
-  protected def generateFunctoid[R: Type, Q <: Quotes](paramDefs: List[Expr[LinkedParameter]], originalFun: Expr[AnyRef])(using qctx: Q): Expr[Ftoid[R]]
+  protected def generateFunctoid[R: Type](
+    using qctx: Quotes
+  )(paramDefs: List[Expr[LinkedParameter]],
+    originalFun: Expr[AnyRef],
+    ignoreDuringImplicitsSearch: List[qctx.reflect.Symbol],
+  ): Expr[Ftoid[R]]
 
-  protected final def generateRawFnCall[Q <: Quotes](argsCount: Int, rawFn: Expr[Any], args: Expr[Seq[Any]])(using qctx: Q): Expr[Any] = {
+  protected final def generateRawFnCall(argsCount: Int, rawFn: Expr[Any], args: Expr[Seq[Any]])(using qctx: Quotes): Expr[Any] = {
     import qctx.reflect.*
 
     val params = List.tabulate(argsCount) {
@@ -32,12 +37,18 @@ trait FunctoidMacroBase[Ftoid[+X] <: AbstractFunctoid[X, Ftoid]] {
     Select.unique(fnAny.asTerm, "apply").appliedToArgs(params.map(_.asTerm)).asExprOf[Any]
   }
 
-  final class FunctoidMacroImpl[Q <: Quotes](using val qctx: Q)(val paramsMacro: FunctoidParametersMacroBase[qctx.type]) {
+  final class FunctoidMacroImpl[Q <: Quotes](
+    using val qctx: Q
+  )(paramsMacro: FunctoidParametersMacroBase[qctx.type],
+    dummyImplicitsExtractorMacro: DummyImplicitsExtractorMacro[qctx.type],
+  ) {
     import qctx.reflect.*
 
+    private val unignorableDummyTypeSymbol: Symbol = TypeRepr.of[IndiscriminateFunctoidDummyImplicit].typeSymbol
+
     def make[R: Type](fun: Expr[AnyRef]): Expr[Ftoid[R]] = {
-      val parameters = analyze(fun.asTerm)
-      val out = generateFunctoid[R, Q](parameters, fun)
+      val (parameters, func, dummyImplicitSymbols) = analyze(fun.asTerm)
+      val out = generateFunctoid[R](parameters, func, dummyImplicitSymbols)
 
       //      report.warning(
       //        s"""fun=${fun.show}
@@ -53,47 +64,137 @@ trait FunctoidMacroBase[Ftoid[+X] <: AbstractFunctoid[X, Ftoid]] {
       out
     }
 
-    @tailrec def analyze(fun: Term): List[Expr[LinkedParameter]] = fun match {
-      case Block(List(DefDef(name, (singleParamList: TermParamClause) :: Nil, _, Some(body))), Closure(_, _)) =>
-        analyzeLambdaOrMethodRef(name, singleParamList, body)
-      case Typed(term, _) =>
-        analyze(term)
-      case Inlined(_, _, term) =>
-        analyze(term)
-      case Block(List(), term) =>
-        analyze(term)
-      case otherExpr =>
-        analyzeTypeOfExpr(otherExpr)
+    @tailrec def analyze(fun: Term): (List[Expr[LinkedParameter]], Expr[AnyRef], List[Symbol]) = fun match {
+      case block @ Block(List(DefDef(_, (singleParamList: TermParamClause) :: Nil, _, Some(body))), _: Closure) =>
+        def copyArgsIntoBody(
+          body: Term,
+          noImplicitsProvided: Map[Term, Term],
+          implicitsProvided: Map[Term, Option[Term]],
+          argsOwner: Symbol,
+        ): Tree = {
+          val treeMap: TreeMap = new TreeMap {
+            override def transformTerm(tree: qctx.reflect.Term)(owner: qctx.reflect.Symbol): qctx.reflect.Term = {
+              tree match {
+                case i: Ident =>
+                  noImplicitsProvided
+                    .get(i)
+                    .orElse(implicitsProvided.getOrElse(i, None))
+                    .getOrElse(i)
+                case _ => super.transformTerm(tree)(owner)
+              }
+            }
+          }
+
+          treeMap.transformTree(body)(argsOwner)
+        }
+
+        val dummyArgs = dummyImplicitsExtractorMacro.extractDummyArguments(body, Symbol.spliceOwner)
+        val (noImplicitsProvided, implicitsProvided) = dummyArgs
+          .map(
+            dummy =>
+              if (dummy.term.tpe.baseClasses.contains(unignorableDummyTypeSymbol)) {
+                dummy
+              } else {
+                val maybeImplicit = Implicits.searchIgnoring(dummy.tpe)(dummy.term.symbol) match {
+                  case s: ImplicitSearchSuccess => Some(s.tree)
+                  case _ => None
+                }
+                dummy.withProvidedImplicit(maybeImplicit)
+              }
+          ).partition(_.providedImplicit.isEmpty)
+
+        val ignoreDuringImplicitSearch = {
+          val inTreeDummySyms = dummyArgs.iterator.map(_.term.symbol).distinct.toList
+          dummyImplicitsExtractorMacro.extractDummySymbolsFromImplicitSearch(inTreeDummySyms)
+        }
+
+        if (dummyArgs.nonEmpty) {
+          val newValDefs = noImplicitsProvided.map {
+            dummy =>
+              ValDef(
+                Symbol.newVal(
+                  Symbol.spliceOwner,
+                  dummy.term.symbol.name,
+                  dummy.tpe,
+                  Flags.EmptyFlags,
+                  Symbol.spliceOwner,
+                ),
+                None,
+              )
+          }
+          val linkedParamsImplicits = analyzeLambdaOrMethodRef(TermParamClause(newValDefs), body, ignoreDuringImplicitSearch)(noImplicitsProvided.map(_.term.symbol))
+          val linkedParamsRegular = analyzeLambdaOrMethodRef(singleParamList, body, ignoreDuringImplicitSearch)()
+          val allLinkedParams = linkedParamsImplicits ++ linkedParamsRegular
+
+          val implicitsNames = noImplicitsProvided.map(_.term.symbol.name)
+          val regularNames = singleParamList.params.map(_.name)
+          val lambdaArgsNames = implicitsNames ++ regularNames
+
+          val implicitsTypes = noImplicitsProvided.map(_.tpe)
+          val regularTypes = singleParamList.params.map(_.tpt.tpe)
+          val lambdaArgsTypes = implicitsTypes ++ regularTypes
+
+          val methodType = MethodType(lambdaArgsNames)(
+            _ => lambdaArgsTypes,
+            _ => body.tpe,
+          )
+
+          val resultLambda = Lambda(
+            Symbol.spliceOwner,
+            methodType,
+            (owner, args) => {
+              val argsWithNoImplicitsProvided = noImplicitsProvided.map(_.term).zip(args.map(_.asExpr.asTerm)).toMap
+              val argsWithImplicitsProvided = implicitsProvided.map(d => d.term -> d.providedImplicit).toMap
+              val newFun = copyArgsIntoBody(block, argsWithNoImplicitsProvided, argsWithImplicitsProvided, owner).asExpr.asTerm
+              val params = args.takeRight(singleParamList.params.size).map(_.asExpr.asTerm)
+              Select.unique(newFun, "apply").appliedToArgs(params)
+            },
+          )
+
+          (allLinkedParams, resultLambda.asExprOf[AnyRef], ignoreDuringImplicitSearch)
+        } else {
+          (analyzeLambdaOrMethodRef(singleParamList, body, ignoreDuringImplicitSearch)(), fun.asExprOf[AnyRef], ignoreDuringImplicitSearch)
+        }
+      case Typed(term, _) => analyze(term)
+      case Inlined(_, _, term) => analyze(term)
+      case Block(List(), term) => analyze(term)
+      case otherExpr => (analyzeTypeOfExpr(otherExpr), fun.asExprOf[AnyRef], Nil)
     }
 
-    private def analyzeLambdaOrMethodRef(name: String, singleParamList: TermParamClause, body: Term): List[Expr[LinkedParameter]] = {
-      val methodRefParams = {
+    private def analyzeLambdaOrMethodRef(
+      singleParamList: TermParamClause,
+      body: Term,
+      ignoreDuringImplicitsSearch: List[Symbol],
+    )(symbolSearchList: List[Symbol] = singleParamList.params.map(_.symbol)
+    ): List[Expr[LinkedParameter]] = {
+      val methodRefParamSyms: List[Symbol] = {
         @tailrec
-        def go(t: Tree): List[Symbol] = t match {
-          case Apply(f, args) if args.map(_.symbol) == singleParamList.params.map(_.symbol) =>
-            f.symbol.paramSymss.filterNot(_.headOption.exists(_.isTypeParam)).flatten
-          case Inlined(_, _, term) => go(term)
-          case Block(List(), term) => go(term)
-          case Typed(term, _) => go(term)
+        def go(t: Tree, rOffset: Int): List[Symbol] = t match {
+          case Apply(f, args) if args.map(_.symbol) == symbolSearchList =>
+            f.symbol.paramSymss.filterNot(_.headOption.exists(_.isTypeParam)).dropRight(rOffset).lastOption.toList.flatten
+          case Apply(f, _) => go(f, rOffset + 1)
+          case Inlined(_, _, term) => go(term, rOffset)
+          case Block(List(), term) => go(term, rOffset)
+          case Typed(term, _) => go(term, rOffset)
           case _ => Nil
         }
 
-        go(body)
+        go(body, 0)
       }
 
       val annotationsOnMethodAreNonEmptyAndASuperset = {
-        methodRefParams.sizeCompare(singleParamList.params) == 0
-        && methodRefParams.exists(_.annotations.nonEmpty)
+        methodRefParamSyms.sizeCompare(singleParamList.params) == 0
+        && methodRefParamSyms.exists(_.annotations.nonEmpty)
       }
 
-      //      report.info(
-      //        s"""mrefparams = $methodRefParams
-      //           |termclause = $singleParamList
-      //           |body=$body
-      //           |sym=${body match { case Apply(f, _) => f.symbol -> f.symbol.paramSymss; case _ => None }}
-      //           |verdict=$annotationsOnMethodAreNonEmptyAndASuperset
-      //           |""".stripMargin
-      //      )
+//      System.err.println(
+//        s"""l:${Position.ofMacroExpansion.startLine}, mrefparams = $methodRefParamSyms
+//           |termclause = $singleParamList
+//           |body=${body.show}
+//           |sym=${body match { case Apply(f, _) => f.symbol -> f.symbol.paramSymss; case _ => None }}
+//           |verdict=$annotationsOnMethodAreNonEmptyAndASuperset
+//           |""".stripMargin
+//      )
 
       // if method reference has more annotations, get parameters from reference instead
       // to preserve annotations!
@@ -101,7 +202,7 @@ trait FunctoidMacroBase[Ftoid[+X] <: AbstractFunctoid[X, Ftoid]] {
         // Use types from the generated lambda, not the method reference, because method reference types maybe generic/unresolved/unrelated
         // But lambda params should be sufficiently 'grounded' at this point
         // (Besides, lambda types are the ones specified by the caller, we should respect them)
-        singleParamList.params.zip(methodRefParams).map {
+        singleParamList.params.zip(methodRefParamSyms).map {
           case (ValDef(name, tpeTree, _), mSym) =>
             paramsMacro.makeParam(
               name = name,
@@ -109,6 +210,7 @@ trait FunctoidMacroBase[Ftoid[+X] <: AbstractFunctoid[X, Ftoid]] {
               mbSym = Some(mSym),
               annotSym = Some(mSym),
               annotTpe = Right(mSym.owner.typeRef.memberType(mSym)),
+              ignoreDuringImplicitsSearch,
             )
         }
       } else {
@@ -121,6 +223,7 @@ trait FunctoidMacroBase[Ftoid[+X] <: AbstractFunctoid[X, Ftoid]] {
               mbSym = mbSym,
               annotSym = mbSym,
               annotTpe = Left(tpeTree),
+              ignoreDuringImplicitsSearch,
             )
         }
       }

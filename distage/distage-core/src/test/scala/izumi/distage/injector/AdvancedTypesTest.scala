@@ -152,7 +152,7 @@ class AdvancedTypesTest extends AnyWordSpec with MkInjector with ScalatestGuards
     class Definition[T >: Null: Tag, G <: T { def dep: Dep }: Tag: TraitConstructor] extends ModuleDef {
       make[Dep]
       make[T { def dep2: Dep }].from(() => null.asInstanceOf[T { def dep2: Dep }])
-      make[T { def dep: Dep }].from(TraitConstructor[G])
+      make[T { def dep: Dep }].fromTrait[G]
     }
 
     val definition = PlannerInput.everything(new Definition[Trait1, Trait1])
@@ -172,8 +172,8 @@ class AdvancedTypesTest extends AnyWordSpec with MkInjector with ScalatestGuards
 
     class Definition[T: Tag, G <: T & Trait1: Tag: TraitConstructor, C <: T & Trait4: Tag: TraitConstructor] extends ModuleDef {
       make[Dep]
-      make[T & Trait4].from(TraitConstructor[C])
-      make[T & Trait1].from(TraitConstructor[G])
+      make[T & Trait4].fromTrait[C]
+      make[T & Trait1].fromTrait[G]
     }
 
     val definition = PlannerInput.everything(new Definition[Trait3[Dep], Trait31[Dep], Trait5[Dep]])

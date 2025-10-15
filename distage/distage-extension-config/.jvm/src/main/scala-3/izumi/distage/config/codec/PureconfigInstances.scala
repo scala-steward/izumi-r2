@@ -8,7 +8,6 @@ import pureconfig.generic.derivation.Utils
 import scala.compiletime.ops.int.+
 import scala.compiletime.{constValue, erasedValue, summonFrom}
 import scala.deriving.Mirror
-import scala.util.chaining.*
 
 object PureconfigInstances {
 
@@ -222,7 +221,7 @@ object PureconfigInstances {
             |CoproductHint implementation.""".stripMargin
     }
 
-    private[config] val fieldMapping: ConfigFieldMapping = ConfigFieldMapping(CamelCase, CamelCase)
+    val fieldMapping: ConfigFieldMapping = ConfigFieldMapping(CamelCase, CamelCase)
 
   }
 
