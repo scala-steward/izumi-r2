@@ -147,7 +147,7 @@ lazy val `fundamentals-basics` = crossProject(JVMPlatform, JSPlatform).crossType
         "-Wconf:msg=package.object.inheritance:silent",
         "-Wconf:cat=lint-eta-sam:silent"
       )
-      case (_, "3.7.2") => Seq(
+      case (_, "3.7.3") => Seq(
         "-source:3.7",
         "-Xkind-projector:underscores",
         "-release:8",
@@ -210,7 +210,7 @@ lazy val `fundamentals-basics` = crossProject(JVMPlatform, JSPlatform).crossType
   )
   .jvmSettings(
     crossScalaVersions := Seq(
-      "3.7.2",
+      "3.7.3",
       "2.13.16",
       "2.12.20"
     ),
@@ -218,7 +218,7 @@ lazy val `fundamentals-basics` = crossProject(JVMPlatform, JSPlatform).crossType
   )
   .jsSettings(
     crossScalaVersions := Seq(
-      "3.7.2",
+      "3.7.3",
       "2.13.16",
       "2.12.20"
     ),
@@ -371,7 +371,7 @@ lazy val `fundamentals-functional` = crossProject(JVMPlatform, JSPlatform).cross
         "-Wconf:msg=package.object.inheritance:silent",
         "-Wconf:cat=lint-eta-sam:silent"
       )
-      case (_, "3.7.2") => Seq(
+      case (_, "3.7.3") => Seq(
         "-source:3.7",
         "-Xkind-projector:underscores",
         "-release:8",
@@ -434,7 +434,7 @@ lazy val `fundamentals-functional` = crossProject(JVMPlatform, JSPlatform).cross
   )
   .jvmSettings(
     crossScalaVersions := Seq(
-      "3.7.2",
+      "3.7.3",
       "2.13.16",
       "2.12.20"
     ),
@@ -442,7 +442,7 @@ lazy val `fundamentals-functional` = crossProject(JVMPlatform, JSPlatform).cross
   )
   .jsSettings(
     crossScalaVersions := Seq(
-      "3.7.2",
+      "3.7.3",
       "2.13.16",
       "2.12.20"
     ),
@@ -596,7 +596,7 @@ lazy val `fundamentals-collections` = crossProject(JVMPlatform, JSPlatform).cros
         "-Wconf:msg=package.object.inheritance:silent",
         "-Wconf:cat=lint-eta-sam:silent"
       )
-      case (_, "3.7.2") => Seq(
+      case (_, "3.7.3") => Seq(
         "-source:3.7",
         "-Xkind-projector:underscores",
         "-release:8",
@@ -659,7 +659,7 @@ lazy val `fundamentals-collections` = crossProject(JVMPlatform, JSPlatform).cros
   )
   .jvmSettings(
     crossScalaVersions := Seq(
-      "3.7.2",
+      "3.7.3",
       "2.13.16",
       "2.12.20"
     ),
@@ -667,7 +667,7 @@ lazy val `fundamentals-collections` = crossProject(JVMPlatform, JSPlatform).cros
   )
   .jsSettings(
     crossScalaVersions := Seq(
-      "3.7.2",
+      "3.7.3",
       "2.13.16",
       "2.12.20"
     ),
@@ -821,7 +821,7 @@ lazy val `fundamentals-literals` = crossProject(JVMPlatform, JSPlatform).crossTy
         "-Wconf:msg=package.object.inheritance:silent",
         "-Wconf:cat=lint-eta-sam:silent"
       )
-      case (_, "3.7.2") => Seq(
+      case (_, "3.7.3") => Seq(
         "-source:3.7",
         "-Xkind-projector:underscores",
         "-release:8",
@@ -884,7 +884,7 @@ lazy val `fundamentals-literals` = crossProject(JVMPlatform, JSPlatform).crossTy
   )
   .jvmSettings(
     crossScalaVersions := Seq(
-      "3.7.2",
+      "3.7.3",
       "2.13.16",
       "2.12.20"
     ),
@@ -892,7 +892,7 @@ lazy val `fundamentals-literals` = crossProject(JVMPlatform, JSPlatform).crossTy
   )
   .jsSettings(
     crossScalaVersions := Seq(
-      "3.7.2",
+      "3.7.3",
       "2.13.16",
       "2.12.20"
     ),
@@ -1050,7 +1050,7 @@ lazy val `fundamentals-orphans` = crossProject(JVMPlatform, JSPlatform).crossTyp
         "-Wconf:msg=package.object.inheritance:silent",
         "-Wconf:cat=lint-eta-sam:silent"
       )
-      case (_, "3.7.2") => Seq(
+      case (_, "3.7.3") => Seq(
         "-source:3.7",
         "-Xkind-projector:underscores",
         "-release:8",
@@ -1113,7 +1113,7 @@ lazy val `fundamentals-orphans` = crossProject(JVMPlatform, JSPlatform).crossTyp
   )
   .jvmSettings(
     crossScalaVersions := Seq(
-      "3.7.2",
+      "3.7.3",
       "2.13.16",
       "2.12.20"
     ),
@@ -1121,7 +1121,7 @@ lazy val `fundamentals-orphans` = crossProject(JVMPlatform, JSPlatform).crossTyp
   )
   .jsSettings(
     crossScalaVersions := Seq(
-      "3.7.2",
+      "3.7.3",
       "2.13.16",
       "2.12.20"
     ),
@@ -1284,7 +1284,7 @@ lazy val `fundamentals-language` = crossProject(JVMPlatform, JSPlatform).crossTy
         "-Wconf:msg=package.object.inheritance:silent",
         "-Wconf:cat=lint-eta-sam:silent"
       )
-      case (_, "3.7.2") => Seq(
+      case (_, "3.7.3") => Seq(
         "-source:3.7",
         "-Xkind-projector:underscores",
         "-release:8",
@@ -1347,7 +1347,7 @@ lazy val `fundamentals-language` = crossProject(JVMPlatform, JSPlatform).crossTy
   )
   .jvmSettings(
     crossScalaVersions := Seq(
-      "3.7.2",
+      "3.7.3",
       "2.13.16",
       "2.12.20"
     ),
@@ -1355,7 +1355,7 @@ lazy val `fundamentals-language` = crossProject(JVMPlatform, JSPlatform).crossTy
   )
   .jsSettings(
     crossScalaVersions := Seq(
-      "3.7.2",
+      "3.7.3",
       "2.13.16",
       "2.12.20"
     ),
@@ -1514,7 +1514,7 @@ lazy val `fundamentals-platform` = crossProject(JVMPlatform, JSPlatform).crossTy
         "-Wconf:msg=package.object.inheritance:silent",
         "-Wconf:cat=lint-eta-sam:silent"
       )
-      case (_, "3.7.2") => Seq(
+      case (_, "3.7.3") => Seq(
         "-source:3.7",
         "-Xkind-projector:underscores",
         "-release:8",
@@ -1577,7 +1577,7 @@ lazy val `fundamentals-platform` = crossProject(JVMPlatform, JSPlatform).crossTy
   )
   .jvmSettings(
     crossScalaVersions := Seq(
-      "3.7.2",
+      "3.7.3",
       "2.13.16",
       "2.12.20"
     ),
@@ -1585,7 +1585,7 @@ lazy val `fundamentals-platform` = crossProject(JVMPlatform, JSPlatform).crossTy
   )
   .jsSettings(
     crossScalaVersions := Seq(
-      "3.7.2",
+      "3.7.3",
       "2.13.16",
       "2.12.20"
     ),
@@ -1746,7 +1746,7 @@ lazy val `fundamentals-functoid` = crossProject(JVMPlatform, JSPlatform).crossTy
         "-Wconf:msg=package.object.inheritance:silent",
         "-Wconf:cat=lint-eta-sam:silent"
       )
-      case (_, "3.7.2") => Seq(
+      case (_, "3.7.3") => Seq(
         "-source:3.7",
         "-Xkind-projector:underscores",
         "-release:8",
@@ -1809,7 +1809,7 @@ lazy val `fundamentals-functoid` = crossProject(JVMPlatform, JSPlatform).crossTy
   )
   .jvmSettings(
     crossScalaVersions := Seq(
-      "3.7.2",
+      "3.7.3",
       "2.13.16",
       "2.12.20"
     ),
@@ -1817,7 +1817,7 @@ lazy val `fundamentals-functoid` = crossProject(JVMPlatform, JSPlatform).crossTy
   )
   .jsSettings(
     crossScalaVersions := Seq(
-      "3.7.2",
+      "3.7.3",
       "2.13.16",
       "2.12.20"
     ),
@@ -1983,7 +1983,7 @@ lazy val `fundamentals-json-circe` = crossProject(JVMPlatform, JSPlatform).cross
         "-Wconf:msg=package.object.inheritance:silent",
         "-Wconf:cat=lint-eta-sam:silent"
       )
-      case (_, "3.7.2") => Seq(
+      case (_, "3.7.3") => Seq(
         "-source:3.7",
         "-Xkind-projector:underscores",
         "-release:8",
@@ -2048,7 +2048,7 @@ lazy val `fundamentals-json-circe` = crossProject(JVMPlatform, JSPlatform).cross
   )
   .jvmSettings(
     crossScalaVersions := Seq(
-      "3.7.2",
+      "3.7.3",
       "2.13.16",
       "2.12.20"
     ),
@@ -2056,7 +2056,7 @@ lazy val `fundamentals-json-circe` = crossProject(JVMPlatform, JSPlatform).cross
   )
   .jsSettings(
     crossScalaVersions := Seq(
-      "3.7.2",
+      "3.7.3",
       "2.13.16",
       "2.12.20"
     ),
@@ -2224,7 +2224,7 @@ lazy val `fundamentals-bio` = crossProject(JVMPlatform, JSPlatform).crossType(Cr
         "-Wconf:msg=package.object.inheritance:silent",
         "-Wconf:cat=lint-eta-sam:silent"
       )
-      case (_, "3.7.2") => Seq(
+      case (_, "3.7.3") => Seq(
         "-source:3.7",
         "-Xkind-projector:underscores",
         "-release:8",
@@ -2287,7 +2287,7 @@ lazy val `fundamentals-bio` = crossProject(JVMPlatform, JSPlatform).crossType(Cr
   )
   .jvmSettings(
     crossScalaVersions := Seq(
-      "3.7.2",
+      "3.7.3",
       "2.13.16",
       "2.12.20"
     ),
@@ -2295,7 +2295,7 @@ lazy val `fundamentals-bio` = crossProject(JVMPlatform, JSPlatform).crossType(Cr
   )
   .jsSettings(
     crossScalaVersions := Seq(
-      "3.7.2",
+      "3.7.3",
       "2.13.16",
       "2.12.20"
     ),
@@ -2465,7 +2465,7 @@ lazy val `distage-core-api` = crossProject(JVMPlatform, JSPlatform).crossType(Cr
         "-Wconf:msg=package.object.inheritance:silent",
         "-Wconf:cat=lint-eta-sam:silent"
       )
-      case (_, "3.7.2") => Seq(
+      case (_, "3.7.3") => Seq(
         "-source:3.7",
         "-Xkind-projector:underscores",
         "-release:8",
@@ -2528,7 +2528,7 @@ lazy val `distage-core-api` = crossProject(JVMPlatform, JSPlatform).crossType(Cr
   )
   .jvmSettings(
     crossScalaVersions := Seq(
-      "3.7.2",
+      "3.7.3",
       "2.13.16",
       "2.12.20"
     ),
@@ -2536,7 +2536,7 @@ lazy val `distage-core-api` = crossProject(JVMPlatform, JSPlatform).crossType(Cr
   )
   .jsSettings(
     crossScalaVersions := Seq(
-      "3.7.2",
+      "3.7.3",
       "2.13.16",
       "2.12.20"
     ),
@@ -2566,7 +2566,7 @@ lazy val `distage-core-proxy-bytebuddy` = project.in(file("distage/distage-core-
   )
   .settings(
     crossScalaVersions := Seq(
-      "3.7.2",
+      "3.7.3",
       "2.13.16",
       "2.12.20"
     ),
@@ -2696,7 +2696,7 @@ lazy val `distage-core-proxy-bytebuddy` = project.in(file("distage/distage-core-
         "-Wconf:msg=package.object.inheritance:silent",
         "-Wconf:cat=lint-eta-sam:silent"
       )
-      case (_, "3.7.2") => Seq(
+      case (_, "3.7.3") => Seq(
         "-source:3.7",
         "-Xkind-projector:underscores",
         "-release:8",
@@ -2900,7 +2900,7 @@ lazy val `distage-framework-api` = crossProject(JVMPlatform, JSPlatform).crossTy
         "-Wconf:msg=package.object.inheritance:silent",
         "-Wconf:cat=lint-eta-sam:silent"
       )
-      case (_, "3.7.2") => Seq(
+      case (_, "3.7.3") => Seq(
         "-source:3.7",
         "-Xkind-projector:underscores",
         "-release:8",
@@ -2963,7 +2963,7 @@ lazy val `distage-framework-api` = crossProject(JVMPlatform, JSPlatform).crossTy
   )
   .jvmSettings(
     crossScalaVersions := Seq(
-      "3.7.2",
+      "3.7.3",
       "2.13.16",
       "2.12.20"
     ),
@@ -2971,7 +2971,7 @@ lazy val `distage-framework-api` = crossProject(JVMPlatform, JSPlatform).crossTy
   )
   .jsSettings(
     crossScalaVersions := Seq(
-      "3.7.2",
+      "3.7.3",
       "2.13.16",
       "2.12.20"
     ),
@@ -3131,7 +3131,7 @@ lazy val `distage-core` = crossProject(JVMPlatform, JSPlatform).crossType(CrossT
         "-Wconf:msg=package.object.inheritance:silent",
         "-Wconf:cat=lint-eta-sam:silent"
       )
-      case (_, "3.7.2") => Seq(
+      case (_, "3.7.3") => Seq(
         "-source:3.7",
         "-Xkind-projector:underscores",
         "-release:8",
@@ -3194,7 +3194,7 @@ lazy val `distage-core` = crossProject(JVMPlatform, JSPlatform).crossType(CrossT
   )
   .jvmSettings(
     crossScalaVersions := Seq(
-      "3.7.2",
+      "3.7.3",
       "2.13.16",
       "2.12.20"
     ),
@@ -3202,7 +3202,7 @@ lazy val `distage-core` = crossProject(JVMPlatform, JSPlatform).crossType(CrossT
   )
   .jsSettings(
     crossScalaVersions := Seq(
-      "3.7.2",
+      "3.7.3",
       "2.13.16",
       "2.12.20"
     ),
@@ -3369,7 +3369,7 @@ lazy val `distage-extension-config` = crossProject(JVMPlatform, JSPlatform).cros
         "-Wconf:msg=package.object.inheritance:silent",
         "-Wconf:cat=lint-eta-sam:silent"
       )
-      case (_, "3.7.2") => Seq(
+      case (_, "3.7.3") => Seq(
         "-source:3.7",
         "-Xkind-projector:underscores",
         "-release:8",
@@ -3432,7 +3432,7 @@ lazy val `distage-extension-config` = crossProject(JVMPlatform, JSPlatform).cros
   )
   .jvmSettings(
     crossScalaVersions := Seq(
-      "3.7.2",
+      "3.7.3",
       "2.13.16",
       "2.12.20"
     ),
@@ -3440,7 +3440,7 @@ lazy val `distage-extension-config` = crossProject(JVMPlatform, JSPlatform).cros
   )
   .jsSettings(
     crossScalaVersions := Seq(
-      "3.7.2",
+      "3.7.3",
       "2.13.16",
       "2.12.20"
     ),
@@ -3614,7 +3614,7 @@ lazy val `distage-extension-logstage` = crossProject(JVMPlatform, JSPlatform).cr
         "-Wconf:msg=package.object.inheritance:silent",
         "-Wconf:cat=lint-eta-sam:silent"
       )
-      case (_, "3.7.2") => Seq(
+      case (_, "3.7.3") => Seq(
         "-source:3.7",
         "-Xkind-projector:underscores",
         "-release:8",
@@ -3677,7 +3677,7 @@ lazy val `distage-extension-logstage` = crossProject(JVMPlatform, JSPlatform).cr
   )
   .jvmSettings(
     crossScalaVersions := Seq(
-      "3.7.2",
+      "3.7.3",
       "2.13.16",
       "2.12.20"
     ),
@@ -3685,7 +3685,7 @@ lazy val `distage-extension-logstage` = crossProject(JVMPlatform, JSPlatform).cr
   )
   .jsSettings(
     crossScalaVersions := Seq(
-      "3.7.2",
+      "3.7.3",
       "2.13.16",
       "2.12.20"
     ),
@@ -3843,7 +3843,7 @@ lazy val `distage-extension-plugins` = crossProject(JVMPlatform, JSPlatform).cro
         "-Wconf:msg=package.object.inheritance:silent",
         "-Wconf:cat=lint-eta-sam:silent"
       )
-      case (_, "3.7.2") => Seq(
+      case (_, "3.7.3") => Seq(
         "-source:3.7",
         "-Xkind-projector:underscores",
         "-release:8",
@@ -3906,7 +3906,7 @@ lazy val `distage-extension-plugins` = crossProject(JVMPlatform, JSPlatform).cro
   )
   .jvmSettings(
     crossScalaVersions := Seq(
-      "3.7.2",
+      "3.7.3",
       "2.13.16",
       "2.12.20"
     ),
@@ -3914,7 +3914,7 @@ lazy val `distage-extension-plugins` = crossProject(JVMPlatform, JSPlatform).cro
   )
   .jsSettings(
     crossScalaVersions := Seq(
-      "3.7.2",
+      "3.7.3",
       "2.13.16",
       "2.12.20"
     ),
@@ -4100,7 +4100,7 @@ lazy val `distage-framework` = crossProject(JVMPlatform, JSPlatform).crossType(C
         "-Wconf:msg=package.object.inheritance:silent",
         "-Wconf:cat=lint-eta-sam:silent"
       )
-      case (_, "3.7.2") => Seq(
+      case (_, "3.7.3") => Seq(
         "-source:3.7",
         "-Xkind-projector:underscores",
         "-release:8",
@@ -4163,7 +4163,7 @@ lazy val `distage-framework` = crossProject(JVMPlatform, JSPlatform).crossType(C
   )
   .jvmSettings(
     crossScalaVersions := Seq(
-      "3.7.2",
+      "3.7.3",
       "2.13.16",
       "2.12.20"
     ),
@@ -4171,7 +4171,7 @@ lazy val `distage-framework` = crossProject(JVMPlatform, JSPlatform).crossType(C
   )
   .jsSettings(
     crossScalaVersions := Seq(
-      "3.7.2",
+      "3.7.3",
       "2.13.16",
       "2.12.20"
     ),
@@ -4210,7 +4210,7 @@ lazy val `distage-framework-docker` = project.in(file("distage/distage-framework
   )
   .settings(
     crossScalaVersions := Seq(
-      "3.7.2",
+      "3.7.3",
       "2.13.16",
       "2.12.20"
     ),
@@ -4340,7 +4340,7 @@ lazy val `distage-framework-docker` = project.in(file("distage/distage-framework
         "-Wconf:msg=package.object.inheritance:silent",
         "-Wconf:cat=lint-eta-sam:silent"
       )
-      case (_, "3.7.2") => Seq(
+      case (_, "3.7.3") => Seq(
         "-source:3.7",
         "-Xkind-projector:underscores",
         "-release:8",
@@ -4419,7 +4419,7 @@ lazy val `distage-testkit-core` = project.in(file("distage/distage-testkit-core"
   )
   .settings(
     crossScalaVersions := Seq(
-      "3.7.2",
+      "3.7.3",
       "2.13.16",
       "2.12.20"
     ),
@@ -4549,7 +4549,7 @@ lazy val `distage-testkit-core` = project.in(file("distage/distage-testkit-core"
         "-Wconf:msg=package.object.inheritance:silent",
         "-Wconf:cat=lint-eta-sam:silent"
       )
-      case (_, "3.7.2") => Seq(
+      case (_, "3.7.3") => Seq(
         "-source:3.7",
         "-Xkind-projector:underscores",
         "-release:8",
@@ -4637,7 +4637,7 @@ lazy val `distage-testkit-scalatest` = project.in(file("distage/distage-testkit-
   )
   .settings(
     crossScalaVersions := Seq(
-      "3.7.2",
+      "3.7.3",
       "2.13.16",
       "2.12.20"
     ),
@@ -4767,7 +4767,7 @@ lazy val `distage-testkit-scalatest` = project.in(file("distage/distage-testkit-
         "-Wconf:msg=package.object.inheritance:silent",
         "-Wconf:cat=lint-eta-sam:silent"
       )
-      case (_, "3.7.2") => Seq(
+      case (_, "3.7.3") => Seq(
         "-source:3.7",
         "-Xkind-projector:underscores",
         "-release:8",
@@ -4847,7 +4847,7 @@ lazy val `distage-testkit-scalatest-sbt-module-filtering-test` = project.in(file
   )
   .settings(
     crossScalaVersions := Seq(
-      "3.7.2",
+      "3.7.3",
       "2.13.16",
       "2.12.20"
     ),
@@ -4977,7 +4977,7 @@ lazy val `distage-testkit-scalatest-sbt-module-filtering-test` = project.in(file
         "-Wconf:msg=package.object.inheritance:silent",
         "-Wconf:cat=lint-eta-sam:silent"
       )
-      case (_, "3.7.2") => Seq(
+      case (_, "3.7.3") => Seq(
         "-source:3.7",
         "-Xkind-projector:underscores",
         "-release:8",
@@ -5187,7 +5187,7 @@ lazy val `logstage-core` = crossProject(JVMPlatform, JSPlatform).crossType(Cross
         "-Wconf:msg=package.object.inheritance:silent",
         "-Wconf:cat=lint-eta-sam:silent"
       )
-      case (_, "3.7.2") => Seq(
+      case (_, "3.7.3") => Seq(
         "-source:3.7",
         "-Xkind-projector:underscores",
         "-release:8",
@@ -5250,7 +5250,7 @@ lazy val `logstage-core` = crossProject(JVMPlatform, JSPlatform).crossType(Cross
   )
   .jvmSettings(
     crossScalaVersions := Seq(
-      "3.7.2",
+      "3.7.3",
       "2.13.16",
       "2.12.20"
     ),
@@ -5258,7 +5258,7 @@ lazy val `logstage-core` = crossProject(JVMPlatform, JSPlatform).crossType(Cross
   )
   .jsSettings(
     crossScalaVersions := Seq(
-      "3.7.2",
+      "3.7.3",
       "2.13.16",
       "2.12.20"
     ),
@@ -5421,7 +5421,7 @@ lazy val `logstage-rendering-circe` = crossProject(JVMPlatform, JSPlatform).cros
         "-Wconf:msg=package.object.inheritance:silent",
         "-Wconf:cat=lint-eta-sam:silent"
       )
-      case (_, "3.7.2") => Seq(
+      case (_, "3.7.3") => Seq(
         "-source:3.7",
         "-Xkind-projector:underscores",
         "-release:8",
@@ -5484,7 +5484,7 @@ lazy val `logstage-rendering-circe` = crossProject(JVMPlatform, JSPlatform).cros
   )
   .jvmSettings(
     crossScalaVersions := Seq(
-      "3.7.2",
+      "3.7.3",
       "2.13.16",
       "2.12.20"
     ),
@@ -5492,7 +5492,7 @@ lazy val `logstage-rendering-circe` = crossProject(JVMPlatform, JSPlatform).cros
   )
   .jsSettings(
     crossScalaVersions := Seq(
-      "3.7.2",
+      "3.7.3",
       "2.13.16",
       "2.12.20"
     ),
@@ -5522,7 +5522,7 @@ lazy val `logstage-adapter-slf4j` = project.in(file("logstage/logstage-adapter-s
   )
   .settings(
     crossScalaVersions := Seq(
-      "3.7.2",
+      "3.7.3",
       "2.13.16",
       "2.12.20"
     ),
@@ -5652,7 +5652,7 @@ lazy val `logstage-adapter-slf4j` = project.in(file("logstage/logstage-adapter-s
         "-Wconf:msg=package.object.inheritance:silent",
         "-Wconf:cat=lint-eta-sam:silent"
       )
-      case (_, "3.7.2") => Seq(
+      case (_, "3.7.3") => Seq(
         "-source:3.7",
         "-Xkind-projector:underscores",
         "-release:8",
@@ -5736,7 +5736,7 @@ lazy val `logstage-sink-slf4j` = project.in(file("logstage/logstage-sink-slf4j")
   )
   .settings(
     crossScalaVersions := Seq(
-      "3.7.2",
+      "3.7.3",
       "2.13.16",
       "2.12.20"
     ),
@@ -5866,7 +5866,7 @@ lazy val `logstage-sink-slf4j` = project.in(file("logstage/logstage-sink-slf4j")
         "-Wconf:msg=package.object.inheritance:silent",
         "-Wconf:cat=lint-eta-sam:silent"
       )
-      case (_, "3.7.2") => Seq(
+      case (_, "3.7.3") => Seq(
         "-source:3.7",
         "-Xkind-projector:underscores",
         "-release:8",
@@ -5979,7 +5979,7 @@ lazy val `microsite` = project.in(file("doc/microsite"))
   )
   .settings(
     crossScalaVersions := Seq(
-      "3.7.2",
+      "3.7.3",
       "2.13.16",
       "2.12.20"
     ),
@@ -6109,7 +6109,7 @@ lazy val `microsite` = project.in(file("doc/microsite"))
         "-Wconf:msg=package.object.inheritance:silent",
         "-Wconf:cat=lint-eta-sam:silent"
       )
-      case (_, "3.7.2") => Seq(
+      case (_, "3.7.3") => Seq(
         "-source:3.7",
         "-Xkind-projector:underscores",
         "-release:8",
@@ -6196,14 +6196,6 @@ lazy val `microsite` = project.in(file("doc/microsite"))
     ParadoxMaterialThemePlugin.paradoxMaterialThemeSettings,
     addMappingsToSiteDir(ScalaUnidoc / packageDoc / mappings, ScalaUnidoc / siteSubdirName),
     ScalaUnidoc / unidoc / unidocProjectFilter := inAggregates(`fundamentals-jvm`, transitive = true) || inAggregates(`distage-jvm`, transitive = true) || inAggregates(`logstage-jvm`, transitive = true),
-    ScalaUnidoc / unidoc /unidocAllSources := {
-      val filess = (ScalaUnidoc/ unidoc /unidocAllSources).value
-      if(scalaVersion.value.startsWith("2.")) {
-        filess
-      } else {
-        filess.map(_.filterNot(_.toString.contains("/fundamentals-orphans/")))
-      }
-    },
     Compile / ParadoxMaterialThemePlugin.autoImport.paradoxMaterialTheme ~= {
                 _.withCopyright("7mind.io")
                   .withRepository(uri("https://github.com/7mind/izumi"))
@@ -6387,7 +6379,7 @@ lazy val `sbt-izumi-deps` = project.in(file("sbt-plugins/sbt-izumi-deps"))
         "-Wconf:msg=package.object.inheritance:silent",
         "-Wconf:cat=lint-eta-sam:silent"
       )
-      case (_, "3.7.2") => Seq(
+      case (_, "3.7.3") => Seq(
         "-source:3.7",
         "-Xkind-projector:underscores",
         "-release:8",

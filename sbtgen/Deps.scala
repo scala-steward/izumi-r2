@@ -145,7 +145,7 @@ object Izumi {
   // DON'T REMOVE, these variables are read from CI build (build.sh)
   final val scala212 = ScalaVersion("2.12.20")
   final val scala213 = ScalaVersion("2.13.16")
-  final val scala300 = ScalaVersion("3.7.2")
+  final val scala300 = ScalaVersion("3.7.3")
 
   object Groups {
     final val fundamentals = Set(Group("fundamentals"))
@@ -434,21 +434,6 @@ object Izumi {
   final val forkTests = Seq(
     "fork" in (SettingScope.Test, Platform.Jvm) := true
   )
-
-  private val disableScaladocOnScala3 = ("sources" in SettingScope.Raw("Compile / doc")) := Seq(
-    SettingKey(Some(scala300), None) := Const.EmptySeq,
-    SettingKey.Default := "(Compile / doc / sources).value".raw,
-  )
-  // Workaround for https://github.com/scala/scala3/issues/23698
-  private val disableUnidocOnScala3 =
-    """ScalaUnidoc / unidoc /unidocAllSources := {
-      |  val filess = (ScalaUnidoc/ unidoc /unidocAllSources).value
-      |  if(scalaVersion.value.startsWith("2.")) {
-      |    filess
-      |  } else {
-      |    filess.map(_.filterNot(_.toString.contains("/fundamentals-orphans/")))
-      |  }
-      |}""".stripMargin
 
   final lazy val fundamentals = Aggregate(
     name = Projects.fundamentals.id,
@@ -835,7 +820,6 @@ object Izumi {
           SettingDef.RawSettingDef(
             "ScalaUnidoc / unidoc / unidocProjectFilter := inAggregates(`fundamentals-jvm`, transitive = true) || inAggregates(`distage-jvm`, transitive = true) || inAggregates(`logstage-jvm`, transitive = true)"
           ),
-          SettingDef.RawSettingDef(disableUnidocOnScala3),
           SettingDef.RawSettingDef("""Compile / ParadoxMaterialThemePlugin.autoImport.paradoxMaterialTheme ~= {
             _.withCopyright("7mind.io")
               .withRepository(uri("https://github.com/7mind/izumi"))
