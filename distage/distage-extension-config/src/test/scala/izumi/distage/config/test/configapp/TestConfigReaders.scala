@@ -1,9 +1,8 @@
-package com.github.pshirshov.configapp
+package izumi.distage.config.test.configapp
 
 import distage.config.ConfigModuleDef
 import izumi.distage.config.codec.{ConfigMetaType, DIConfigMeta}
 import izumi.distage.model.PlannerInput
-import pureconfig.ConfigReader
 
 import scala.collection.immutable.ListSet
 
@@ -16,7 +15,7 @@ case class OptionCaseClass(optInt: Option[Int], optCustomObject: Option[NestedOb
 
 case class BackticksCaseClass(`boo-lean`: Boolean)
 
-case class SealedCaseClass(sealedTrait1: SealedTrait1)
+case class SealedCaseClass(sealedTrait1: SealedTrait)
 
 case class TupleCaseClass(tuple: (Int, String, Boolean, Option[Either[Boolean, List[String]]]))
 
@@ -50,14 +49,8 @@ class CustomCodecObject(val value: Int) {
     }
   }
 }
-object CustomCodecObject {
+object CustomCodecObject extends CustomCodecObjectPlatformSpecific {
   def apply(value: Int) = new CustomCodecObject(value)
-
-  implicit val pureconfigReader: ConfigReader[CustomCodecObject] = ConfigReader.fromStringOpt {
-    case "eaaxacaca" => Some(new CustomCodecObject(453))
-    case "a" => Some(new CustomCodecObject(45))
-    case _ => Some(new CustomCodecObject(1))
-  }
 
   implicit val diConfigMeta: DIConfigMeta[CustomCodecObject] = new DIConfigMeta[CustomCodecObject] {
     override def tpe: ConfigMetaType = {
@@ -66,10 +59,10 @@ object CustomCodecObject {
   }
 }
 
-sealed trait SealedTrait1
+sealed trait SealedTrait
 object SealedTrait {
-  case class CaseClass1(int: Int, string: String, boolean: Boolean, sealedTrait2: SealedTrait2) extends SealedTrait1
-  case class CaseClass2(int: Int, boolean: Boolean, sealedTrait2: SealedTrait2) extends SealedTrait1
+  case class CaseClass1(int: Int, string: String, boolean: Boolean, sealedTrait2: SealedTrait2) extends SealedTrait
+  case class CaseClass2(int: Int, boolean: Boolean, sealedTrait2: SealedTrait2) extends SealedTrait
 }
 
 sealed trait SealedTrait2
