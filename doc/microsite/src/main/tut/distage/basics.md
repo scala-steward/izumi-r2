@@ -1,4 +1,4 @@
-# Overview
+# Basics
 
 @@toc { depth=2 }
 
@@ -1605,7 +1605,7 @@ First, the program we want to write:
 import cats.Monad
 import cats.effect.{Sync, IO}
 import cats.syntax.all._
-import distage.{Roots, ModuleDef, Injector, Tag, TagK, TagKK}
+import distage.{Injector, Lifecycle, Locator, Module, ModuleDef, Roots, Tag, TagK, TagKK}
 
 trait Validation[F[_]] {
   def minSize(s: String, n: Int): F[Boolean]
@@ -1624,7 +1624,7 @@ object Interaction {
 }
 
 class TaglessProgram[F[_]: Monad: Validation: Interaction] {
-  def program: F[Unit] = for {
+  def run: F[Unit] = for {
     userInput <- Interaction[F].ask("Give me something with at least 3 chars and a number on it")
     valid     <- (Validation[F].minSize(userInput, 3), Validation[F].hasNumber(userInput)).mapN(_ && _)
     _         <- if (valid) Interaction[F].tell("awesomesauce!")
@@ -1632,15 +1632,15 @@ class TaglessProgram[F[_]: Monad: Validation: Interaction] {
   } yield ()
 }
 
-def ProgramModule[F[_]: TagK: Monad] = new ModuleDef {
+def ProgramModule[F[_]: TagK]: Module = new ModuleDef {
   make[TaglessProgram[F]]
 }
 ```
 
-@scaladoc[TagK](izumi.reflect.TagK) is `distage`'s analogue of `TypeTag` for higher-kinded types such as `F[_]`,
+[TagK](https://javadoc.io/static/dev.zio/izumi-reflect_2.13/3.0.6/izumi/reflect/index.html#TagK[K[_]]=izumi.reflect.HKTag[AnyRef{typeArg[A]=K[A]}]) is `distage`'s analogue of `TypeTag` for higher-kinded types such as `F[_]`,
 it allows preserving type-information at runtime for type parameters.
-You'll need to add a @scaladoc[TagK](izumi.reflect.TagK) context bound to create a module parameterized by an abstract `F[_]`.
-To parameterize by non-higher-kinded types, use just @scaladoc[Tag](izumi.reflect.Tag).
+You'll need to add a [TagK](https://javadoc.io/static/dev.zio/izumi-reflect_2.13/3.0.6/izumi/reflect/index.html#TagK[K[_]]=izumi.reflect.HKTag[AnyRef{typeArg[A]=K[A]}]) context bound to create a module parameterized by an abstract `F[_]`.
+To parameterize by non-higher-kinded types, use [Tag](https://javadoc.io/doc/dev.zio/izumi-reflect_2.13/latest/izumi/reflect/Tag.html) without the K.
 
 Now the interpreters for `Validation` and `Interaction`:
 
@@ -1655,68 +1655,76 @@ final class SyncInteraction[F[_]](implicit F: Sync[F]) extends Interaction[F] {
   def ask(s: String): F[String] = F.delay("This could have been user input 1")
 }
 
-def SyncInterpreters[F[_]: TagK: Sync] = {
-  new ModuleDef {
-    make[Validation[F]].from[SyncValidation[F]]
-    make[Interaction[F]].from[SyncInteraction[F]]
-  }
+def SyncInterpreters[F[_]: TagK]: Module = new ModuleDef {
+  make[Validation[F]].from[SyncValidation[F]]
+  make[Interaction[F]].from[SyncInteraction[F]]
 }
 
 // combine all modules
 
-def SyncProgram[F[_]: TagK: Sync] = ProgramModule[F] ++ SyncInterpreters[F]
+def SyncProgram[F[_]: TagK]: Module = ProgramModule[F] ++ SyncInterpreters[F]
 
 // create object graph Lifecycle
 
-val objectsLifecycle = Injector[IO]().produce(SyncProgram[IO], Roots.Everything)
+val objectsLifecycle: Lifecycle[IO, Locator] = {
+  Injector[IO]().produce(SyncProgram[IO], Roots.target[TaglessProgram[IO]])
+}
 
 // run
 
 import cats.effect.unsafe.implicits.global
 
-objectsLifecycle.use(_.get[TaglessProgram[IO]].program).unsafeRunSync()
+val effect: IO[Unit] = objectsLifecycle.use(_.get[TaglessProgram[IO]].run)
+
+effect.unsafeRunSync()
 ```
 
 ### Effect-type polymorphism
 
-The program module is polymorphic over effect type. It can be instantiated by a different effect:
+The program module is polymorphic over effect type. It can be parameterized by a different effect type:
 
 ```scala mdoc:to-string
-import zio.interop.catz._
-import zio.Task
+import zio.{Task, ZIO}
 
-val ZIOProgram = ProgramModule[Task] ++ SyncInterpreters[Task]
+def ZIOModule: Module = ProgramModule[Task] ++ SyncInterpreters[Task]
 ```
 
-We may even choose different interpreters at runtime:
+We may even choose different interpreters at runtime via @ref[activation axis](#activation-axis):
 
 ```scala mdoc:to-string
 import zio.Console
+import zio.interop.catz._
 import distage.Activation
+import distage.StandardAxis.World
 
 object RealInteractionZIO extends Interaction[Task] {
   def tell(s: String): Task[Unit]  = Console.printLine(s)
   def ask(s: String): Task[String] = Console.printLine(s) *> Console.readLine
 }
 
-def RealInterpretersZIO = {
-  SyncInterpreters[Task] overriddenBy new ModuleDef {
-    make[Interaction[Task]].from(RealInteractionZIO)
-  }
+def ConfigurableInterpretersZIO: Module = new ModuleDef {
+  make[Validation[Task]].from[SyncValidation[Task]]
+  make[Interaction[Task]].tagged(World.Mock).from[SyncInteraction[Task]]
+  make[Interaction[Task]].tagged(World.Real).from(RealInteractionZIO)
 }
 
-def chooseInterpreters(isDummy: Boolean) = {
-  val interpreters = if (isDummy) SyncInterpreters[Task]
-                     else         RealInterpretersZIO
-  def module = ProgramModule[Task] ++ interpreters
+def chooseInterpreters(isDummy: Boolean): Lifecycle[Task, TaglessProgram[Task]] = {
+  val choice = if (isDummy) World.Mock else World.Real
+  val module = ProgramModule[Task] ++ ConfigurableInterpretersZIO
 
   Injector[Task]()
-    .produceGet[TaglessProgram[Task]](module, Activation.empty)
+    .produceGet[TaglessProgram[Task]](module, Activation(World -> choice))
 }
 
-// execute
+// run
 
-chooseInterpreters(true)
+import izumi.functional.bio.UnsafeRun2
+
+val runner: UnsafeRun2[zio.IO] = UnsafeRun2.createZIO()
+
+val zioEffect: Task[Unit] = chooseInterpreters(isDummy = true).use(_.run)
+
+runner.unsafeRun(zioEffect)
 ```
 
 ### Kind polymorphism
@@ -1733,10 +1741,6 @@ Or use `Tag.auto.T` to abstract over any kind:
 class MonadTransformerModule[F[_[_], _]: Tag.auto.T] extends ModuleDef
 ```
 
-```scala mdoc:to-string
-class EldritchModule[F[+_, -_[_, _], _[_[_, _], _], _]: Tag.auto.T] extends ModuleDef
-```
-
 consult [izumi.reflect.HKTag](https://javadoc.io/doc/dev.zio/izumi-reflect_2.13/latest/izumi/reflect/HKTag.html) docs for more details.
 
 ## Cats & ZIO Integration
@@ -1745,6 +1749,6 @@ Cats & ZIO instances and syntax are available automatically in `distage-core`, w
 However, distage *won't* bring in `cats` or `zio` as dependencies if you don't already depend on them.
 (see [No More Orphans](https://blog.7mind.io/no-more-orphans.html) blog post for details on how that works)
 
-@ref[Cats Resource & ZIO ZManaged Bindings](basics.md#resource-bindings-lifecycle) also work out of the box without any magic imports.
+@ref[Cats Resource & Scoped ZIO/ZManaged/ZLayer Bindings](basics.md#resource-bindings-lifecycle) also work out of the box without any magic imports.
 
 All relevant typeclass instances for chosen effect type, such as `ConcurrentEffect[F]`, are @ref[included by default](basics.md#out-of-the-box-typeclass-instances) (overridable by user bindings)
