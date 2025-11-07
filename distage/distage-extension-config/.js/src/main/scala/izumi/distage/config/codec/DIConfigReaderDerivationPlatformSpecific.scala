@@ -2,7 +2,7 @@ package izumi.distage.config.codec
 
 import io.circe.{Decoder, Json}
 import izumi.distage.config.model.exceptions.DIConfigReadException
-import izumi.fundamentals.preamble.toRichThrowable
+import izumi.fundamentals.platform.exceptions.IzThrowable.toRichThrowable
 
 import scala.reflect.ClassTag
 import scala.util.{Failure, Success, Try}
