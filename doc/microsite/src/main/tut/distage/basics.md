@@ -1319,17 +1319,6 @@ Injector()
 
 ## Subcontexts
 
-Subcontext seems to do most of this - it inherits from global scope by default. You can use include inside subcontext's module to spread out definitions into multiple modules. It is limited to a target dependency, but the target dependency itself is not limited - you can make a tuple or a case class binding to aggregate multiple components in a tuple or even add LocatorRef to extract arbitrary components (but they would have to be dependencies of other components in the tuple).
-
-It wouldn't make a lot of sense to make Subcontexts fully unrestricted wrt the target dependency - because Subcontexts are actually an optimization of nested injection pattern, where the target dependency is known ahead of time. This allows the subcontext to be pre-planned in advance, so when you create an instance of the subgraph there is no injector overhead - the constructors are just called with local dependencies according to the pre-calculated plan. Since values of local dependencies can't influence the shape of the graph there is no reason to recalculate it.
-
-Now, if you actually need to be able to make different subgraphs out of a module at runtime, you can manually use nested injection - that way you have full flexibility with regards to everything, you can even do another classpath scan for Plugins and construct the module from that at runtime.
-
-However, for efficiency, you'd probably want to use pre-calculated subcontexts, because people rarely make dynamically extensible applications especially in Scala. It would be easier to just make multiple subcontexts for each different component - they can even use the same module, it doesn't matter, only real dependencies of the target dependency will be created, modules can safely contain unused bindings:
-
-
-Note also that Subcontexts are generalized Factories. A subcontext with just one binding is exactly the same as a Factory.
-
 Sometimes multiple components depend on the same piece of data that appears locally, after all the components were already wired.
 This data may need to be passed around repeatedly, possibly across the entire application. To do this, we may have to add an argument
 to most methods of an application, or have to use a Reader monad everywhere.
@@ -1579,6 +1568,8 @@ val result = runner.unsafeRun {
 Using subcontexts is more efficient than @ref[nesting Injectors](advanced-features.md#depending-on-locator) manually, since subcontexts are planned ahead of time - there's no planning step for subcontexts, only execution step.
 
 Note: When your subcontext's submodule only contains one binding, you may be able to achieve the same result using an @ref[Auto-Factory](#auto-factories) instead.
+
+- [Gitter discussion: Subcontexts implement what .NET calls Transient or Request scope](https://matrix.to/#/!fjiBThWZrkChOzTruT:gitter.im/$PxWlZnbRyGICEgi8y5HT5m-Z111EeJu9PFt906_6iFw?via=gitter.im&via=matrix.org&via=matrix.freyachat.eu)
 
 ## Tagless Final Style
 
