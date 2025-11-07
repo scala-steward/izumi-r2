@@ -1330,14 +1330,11 @@ Ideally, instead of adding the same argument to our methods, we'd want to just m
 passing the argument just once during the construction of a class. However, we'd lose the ability to automatically wire our objects,
 since we can only get a RequestId from a request, it's not available when we initially wire our object graph.
 
-Since 1.2.0 this problem is addressed in distage using `Subcontext`s - using them we can define a wireable sub-graph of
-our components that depend on local data unavailable during wiring, but that we can then finish wiring once we pass them the data.
+Since 1.2.0 this problem is addressed in distage using `Subcontext` - with Subcontexts we can define a sub-graph of components that depend on local data unavailable during wiring, but that can be fully wired once we obtain the data.
 
-Starting with a graph that has no local dependencies:
+Starting with components that use a local dependency, `RequestId`, in methods:
 
 ```scala mdoc:reset:invisible:to-string
-class PetStoreRepository[F[+_, +_]]
-
 class Pet
 class PetId
 class RequestId
@@ -1348,9 +1345,18 @@ def RequestId(): RequestId = ???
 import izumi.functional.bio.IO2
 import distage.{ModuleDef, Subcontext, TagKK}
 
-class PetStoreBusinessLogic[F[+_, +_]] {
+class PetStoreRepository[F[+_, +_]] {
   // requestId is a method parameter
-  def buyPetLogic(requestId: RequestId, petId: PetId, payment: Int): F[Throwable, Pet] = ???
+  def findPet(requestId: RequestId, petId: PetId): F[Nothing, Option[Pet]] = ???
+  def removePet(requestId: RequestId, petId: PetId): F[Nothing, Boolean] = ???
+}
+
+class PetStoreBusinessLogic[F[+_, +_]: Error2](
+  petStoreRepository: PetStoreRepository[F]
+) {
+  def buyPet(requestId: RequestId, petId: PetId, payment: Int): F[Throwable, Pet] = {
+
+  }
 }
 
 def module1[F[+_, +_]: TagKK] = new ModuleDef {
@@ -1363,23 +1369,24 @@ def module1[F[+_, +_]: TagKK] = new ModuleDef {
 class PetStoreAPIHandler[F[+_, +_]: IO2](
   petStoreBusinessLogic: PetStoreBusinessLogic[F]
 ) {
-  def buyPet(petId: PetId, payment: Int): F[Throwable, Pet] = {
-    petStoreBusinessLogic.buyPetLogic(RequestId(), petId, payment)
+  def buyPetAPI(petId: PetId, payment: Int): F[Throwable, Pet] = F.suspend {
+    petStoreBusinessLogic.buyPet(RequestId(), petId, payment)
   }
 }
 ```
 
-We use `makeSubcontext` to delineate a portion of the graph that requires a `RequestId` to be wired:
+We move `RequestId` from method to class parameter list and use `makeSubcontext` to delineate the components that require a `RequestId`:
 
 ```scala mdoc:override:to-string
 class HACK_OVERRIDE_PetStoreBusinessLogic[F[+_, +_]](
   // requestId is a now a class parameter
-  requestId: RequestId
+  requestId: RequestId,
+  petStoreRepository: PetStoreRepository[F]
 ) {
-  def buyPetLogic(petId: PetId, payment: Int): F[Throwable, Pet] = ???
+  def buyPet(petId: PetId, payment: Int): F[Throwable, Pet] = ???
 }
 
-def module2[F[+_, +_] : TagKK] = new ModuleDef {
+def module2[F[+_, +_]: TagKK] = new ModuleDef {
   make[HACK_OVERRIDE_PetStoreAPIHandler[F]]
 
   makeSubcontext[PetStoreBusinessLogic[F]]
@@ -1393,18 +1400,20 @@ def module2[F[+_, +_] : TagKK] = new ModuleDef {
 class HACK_OVERRIDE_PetStoreAPIHandler[F[+_, +_]: IO2: TagKK](
   petStoreBusinessLogic: Subcontext[HACK_OVERRIDE_PetStoreBusinessLogic[F]]
 ) {
-  def buyPet(petId: PetId, payment: Int): F[Throwable, Pet] = {
+  def buyPetAPI(petId: PetId, payment: Int): F[Throwable, Pet] = F.suspend {
     // we have to pass the parameter and create the component now, since it's not already wired.
+    val newRequestId = RequestId()
     petStoreBusinessLogic
-      .provide[RequestId](RequestId())
+      .provide[RequestId](newRequestId)
       .produceRun {
-        _.buyPetLogic(petId, payment)
+        (businessLogic: HACK_OVERRIDE_PetStoreBusinessLogic[F]) =>
+          businessLogic.buyPet(petId, payment)
       }
   }
 }
 ```
 
-We managed to move RequestId from a method parameter that polluted every method signature, to a class parameter, that we pass to the subgraph just once - when the RequestId is generated.
+We successfully removed RequestId from method signatures, and we now have to pass it only once to create the Subcontext.
 
 Full example:
 
@@ -1448,37 +1457,35 @@ final case class Pet(name: String, species: String, price: Int)
 final class PetStoreAPIHandler[F[+_, +_]: IO2: TagKK](
   petStoreBusinessLogic: Subcontext[PetStoreBusinessLogic[F]]
 ) {
-  def buyPet(petId: PetId, payment: Int): F[TransactionFailure, Pet] = {
+  def buyPetAPI(petId: PetId, payment: Int): F[TransactionFailure, Pet] = {
     for {
       requestId <- F.sync(RequestId(UUID.randomUUID()))
-      pet <- petStoreBusinessLogic
-              .provide[RequestId](requestId)
-              .produce[F[Throwable, _]]()
-              .mapK[F[Throwable, _], F[TransactionFailure, _]](Morphism1(_.orTerminate))
-              .use {
-                component =>
-                  component.buyPetLogic(petId, payment)
-              }
+      businessLogicLifecycle =
+        petStoreBusinessLogic
+          .provide[RequestId](requestId)
+          .produce[F[Throwable, _]]()
+          .mapK[F[Throwable, _], F[TransactionFailure, _]](Morphism1(_.orTerminate))
+      pet <- businessLogicLifecycle.use(_.buyPet(petId, payment))
     } yield pet
   }
 }
 
 final class PetStoreBusinessLogic[F[+_, +_]: Error2](
   requestId: RequestId,
-  petStoreReposistory: PetStoreReposistory[F],
+  petStoreRepository: PetStoreRepository[F],
   log: LogIO2[F],
 ) {
   private val contextLog = log.withCustomContext("requestId" -> requestId)
 
-  def buyPetLogic(petId: PetId, payment: Int): F[TransactionFailure, Pet] = {
+  def buyPet(petId: PetId, payment: Int): F[TransactionFailure, Pet] = {
     for {
-      pet <- petStoreReposistory.findPet(petId).fromOption(TransactionFailure.NoSuchPet)
+      pet <- petStoreRepository.findPet(petId).fromOption(TransactionFailure.NoSuchPet)
       _   <- if (payment < pet.price) {
           contextLog.error(s"Insufficient $payment, couldn't afford ${pet.price}") *>
           F.fail(TransactionFailure.InsufficientFunds)
         } else {
           for {
-            result <- petStoreReposistory.removePet(petId)
+            result <- petStoreRepository.removePet(petId)
             _      <- F.when(!result)(F.fail(TransactionFailure.NoSuchPet))
             _      <- contextLog.info(s"Successfully bought $pet with $petId for $payment! ${payment - pet.price -> "overpaid"}")
           } yield ()
@@ -1487,17 +1494,17 @@ final class PetStoreBusinessLogic[F[+_, +_]: Error2](
   }
 }
 
-trait PetStoreReposistory[F[+_, +_]] {
+trait PetStoreRepository[F[+_, +_]] {
   def findPet(petId: PetId): F[Nothing, Option[Pet]]
   def removePet(petId: PetId): F[Nothing, Boolean]
 }
-object PetStoreReposistory {
+object PetStoreRepository {
   final class Impl[F[+_, +_]: Monad2: Primitives2](
     requestId: RequestId,
     log: LogIO2[F],
-  ) extends Lifecycle.LiftF[F[Nothing, _], PetStoreReposistory[F]](for {
+  ) extends Lifecycle.LiftF[F[Nothing, _], PetStoreRepository[F]](for {
     state <- F.mkRef(Pets.builtinPetMap)
-  } yield new PetStoreReposistory[F] {
+  } yield new PetStoreRepository[F] {
     private val contextLog = log("requestId" -> requestId)
 
     override def findPet(petId: PetId): F[Nothing, Option[Pet]] = {
@@ -1534,22 +1541,18 @@ object Pets {
   )
 }
 
-object Module extends ModuleDef {
-  include(module[zio.IO])
+def module[F[+_, +_]: TagKK] = new ModuleDef {
+  make[PetStoreAPIHandler[F]]
 
-  def module[F[+_, +_]: TagKK] = new ModuleDef {
-    make[PetStoreAPIHandler[F]]
+  make[IzLogger].from(HACK_OVERRIDE_IzLogger())
+  include(LogIO2Module[F]())
 
-    make[IzLogger].from(HACK_OVERRIDE_IzLogger())
-    include(LogIO2Module[F]())
-
-    makeSubcontext[PetStoreBusinessLogic[F]]
-      .withSubmodule(new ModuleDef {
-        make[PetStoreReposistory[F]].fromResource[PetStoreReposistory.Impl[F]]
-        make[PetStoreBusinessLogic[F]]
-      })
-      .localDependency[RequestId]
-  }
+  makeSubcontext[PetStoreBusinessLogic[F]]
+    .withSubmodule(new ModuleDef {
+      make[PetStoreRepository[F]].fromResource[PetStoreRepository.Impl[F]]
+      make[PetStoreBusinessLogic[F]]
+    })
+    .localDependency[RequestId]
 }
 
 import izumi.functional.bio.UnsafeRun2
@@ -1558,9 +1561,9 @@ val runner = UnsafeRun2.createZIO()
 
 val result = runner.unsafeRun {
   Injector[zio.Task]()
-    .produceRun(Module) {
-      (p: PetStoreAPIHandler[zio.IO]) =>
-        p.buyPet(Pets.arnoldId, 100).attempt
+    .produceRun(module[zio.IO]) {
+      (petStoreAPI: PetStoreAPIHandler[zio.IO]) =>
+        petStoreAPI.buyPetAPI(Pets.arnoldId, 100).attempt
     }
 }
 ```
@@ -1596,7 +1599,7 @@ First, the program we want to write:
 import cats.Monad
 import cats.effect.{Sync, IO}
 import cats.syntax.all._
-import distage.{Injector, Lifecycle, Locator, Module, ModuleDef, Roots, Tag, TagK, TagKK}
+import distage.{Injector, Lifecycle, Locator, Module, ModuleDef, Roots, Tag, TagK}
 
 trait Validation[F[_]] {
   def minSize(s: String, n: Int): F[Boolean]
@@ -1723,6 +1726,8 @@ runner.unsafeRun(zioEffect)
 Modules can be polymorphic over arbitrary kinds - use `TagKK` to abstract over bifunctors:
 
 ```scala mdoc:to-string
+import distage.TagKK
+
 class BifunctorIOModule[F[_, _]: TagKK] extends ModuleDef
 ```
 
