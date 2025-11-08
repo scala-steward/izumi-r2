@@ -900,7 +900,7 @@ Injector().produceRun(axisIncrement, Activation(Mode -> Mode.Prod))((currentInt:
 
 ## Effect Bindings
 
-Sometimes we want to effectfully create a component, but the resulting component or data does not need to be deallocated.
+Sometimes we want to effectfully create a component, but the resulting component does not need to be deallocated.
 An example might be a global `Semaphore` to limit the parallelism of the entire application based on configuration,
 or a test implementation of some service made with `Ref`s.
 
@@ -1319,30 +1319,30 @@ Injector()
 
 ## Subcontexts
 
-Sometimes multiple components depend on the same piece of data that appears locally, after all the components were already wired.
-This data may need to be passed around repeatedly, possibly across the entire application. To do this, we may have to add an argument
+Sometimes multiple components depend on the same value that appears locally, after all the components were already wired.
+This value may need to be passed around repeatedly, possibly across the entire application. To do this, we may have to add an argument
 to most methods of an application, or have to use a Reader monad everywhere.
 
 For example, we could be adding distributed tracing to our application - after getting a RequestId from a request, we may
 need to carry it everywhere to add it to logs and metrics.
 
-Ideally, instead of adding the same argument to our methods, we'd want to just move that argument data out to the class constructor -
+Ideally, instead of adding the same argument to our methods, we'd want to just move that argument out to the class constructor -
 passing the argument just once during the construction of a class. However, we'd lose the ability to automatically wire our objects,
 since we can only get a RequestId from a request, it's not available when we initially wire our object graph.
 
-Since 1.2.0 this problem is addressed in distage using `Subcontext` - with Subcontexts we can define a sub-graph of components that depend on local data unavailable during wiring, but that can be fully wired once we obtain the data.
+Since 1.2.0 this problem is addressed in distage using `Subcontext` - with Subcontexts we can define a sub-graph of components that depend on local values unavailable during wiring, but that can be fully wired once we obtain the values.
 
-Starting with components that use a local dependency, `RequestId`, in methods:
+Starting with components that require a local dependency, `RequestId`, in method arguments:
 
 ```scala mdoc:reset:invisible:to-string
-class Pet
+class Pet(val price: Int)
 class PetId
 class RequestId
 def RequestId(): RequestId = ???
 ```
 
 ```scala mdoc:to-string
-import izumi.functional.bio.IO2
+import izumi.functional.bio.{Error2, F, IO2}
 import distage.{ModuleDef, Subcontext, TagKK}
 
 class PetStoreRepository[F[+_, +_]] {
@@ -1355,7 +1355,17 @@ class PetStoreBusinessLogic[F[+_, +_]: Error2](
   petStoreRepository: PetStoreRepository[F]
 ) {
   def buyPet(requestId: RequestId, petId: PetId, payment: Int): F[Throwable, Pet] = {
-
+    petStoreRepository.findPet(requestId, petId).flatMap {
+      case Some(pet) if payment < pet.price =>
+        F.fail(new RuntimeException("Insufficient funds"))
+      case Some(pet) =>
+        for {
+          removed <- petStoreRepository.removePet(requestId, petId)
+          _       <- F.when(!removed)(F.fail(new RuntimeException("No such pet")))
+        } yield pet
+      case None =>
+        F.fail(new RuntimeException("No such pet"))
+    }
   }
 }
 
@@ -1369,21 +1379,36 @@ def module1[F[+_, +_]: TagKK] = new ModuleDef {
 class PetStoreAPIHandler[F[+_, +_]: IO2](
   petStoreBusinessLogic: PetStoreBusinessLogic[F]
 ) {
-  def buyPetAPI(petId: PetId, payment: Int): F[Throwable, Pet] = F.suspend {
-    petStoreBusinessLogic.buyPet(RequestId(), petId, payment)
+  def buyPetAPI(petId: PetId, payment: Int): F[Throwable, Pet] = {
+    F.suspend {
+      val requestId = RequestId()
+      petStoreBusinessLogic.buyPet(RequestId(), petId, payment)
+    }
   }
 }
 ```
 
-We move `RequestId` from method to class parameter list and use `makeSubcontext` to delineate the components that require a `RequestId`:
+We'll now change `RequestId` from method to class argument and use `makeSubcontext` to define a dynamic sub-graph for components that require a `RequestId`:
 
 ```scala mdoc:override:to-string
-class HACK_OVERRIDE_PetStoreBusinessLogic[F[+_, +_]](
+class HACK_OVERRIDE_PetStoreBusinessLogic[F[+_, +_]: Error2](
   // requestId is a now a class parameter
   requestId: RequestId,
   petStoreRepository: PetStoreRepository[F]
 ) {
-  def buyPet(petId: PetId, payment: Int): F[Throwable, Pet] = ???
+  def buyPet(petId: PetId, payment: Int): F[Throwable, Pet] = {
+    petStoreRepository.findPet(requestId, petId).flatMap {
+      case Some(pet) if payment < pet.price =>
+        F.fail(new RuntimeException("Insufficient funds"))
+      case Some(pet) =>
+        for {
+          removed <- petStoreRepository.removePet(requestId, petId)
+          _       <- F.when(!removed)(F.fail(new RuntimeException("No such pet")))
+        } yield pet
+      case None =>
+        F.fail(new RuntimeException("No such pet"))
+    }
+  }
 }
 
 def module2[F[+_, +_]: TagKK] = new ModuleDef {
@@ -1398,13 +1423,13 @@ def module2[F[+_, +_]: TagKK] = new ModuleDef {
 }
 
 class HACK_OVERRIDE_PetStoreAPIHandler[F[+_, +_]: IO2: TagKK](
-  petStoreBusinessLogic: Subcontext[HACK_OVERRIDE_PetStoreBusinessLogic[F]]
+  petStoreBusinessLogicSubcontext: Subcontext[HACK_OVERRIDE_PetStoreBusinessLogic[F]]
 ) {
-  def buyPetAPI(petId: PetId, payment: Int): F[Throwable, Pet] = F.suspend {
-    // we have to pass the parameter and create the component now, since it's not already wired.
-    val newRequestId = RequestId()
-    petStoreBusinessLogic
-      .provide[RequestId](newRequestId)
+  def buyPetAPI(petId: PetId, payment: Int): F[Throwable, Pet] = {
+    // we have to create PetStoreBusinessLogic by passing the RequestId, since we didn't receive a constructed instance
+    val requestId = RequestId()
+    petStoreBusinessLogicSubcontext
+      .provide[RequestId](requestId)
       .produceRun {
         (businessLogic: HACK_OVERRIDE_PetStoreBusinessLogic[F]) =>
           businessLogic.buyPet(petId, payment)
@@ -1423,7 +1448,7 @@ def HACK_OVERRIDE_IzLogger(): logstage.IzLogger = {
     val policy = izumi.logstage.api.rendering.RenderingPolicy.simplePolicy()
 
     override def flush(e: logstage.Log.Entry): Unit = {
-      val rendered = policy.render(e)
+      val rendered = policy.render(e.copy(message = logstage.Message.raw("\n    ") ++ e.message))
       println(rendered)
     }
 
@@ -1568,9 +1593,9 @@ val result = runner.unsafeRun {
 }
 ```
 
-Using subcontexts is more efficient than @ref[nesting Injectors](advanced-features.md#depending-on-locator) manually, since subcontexts are planned ahead of time - there's no planning step for subcontexts, only execution step.
+Subcontexts are more efficient than @ref[nested Injectors](advanced-features.md#depending-on-locator), since subcontexts are planned ahead of time - there's no additional planning step for subcontexts after initial wiring, only an execution step.
 
-Note: When your subcontext's submodule only contains one binding, you may be able to achieve the same result using an @ref[Auto-Factory](#auto-factories) instead.
+Note: If your Subcontext module contains only one binding, you can just replace it with an @ref[Auto-Factory](#auto-factories).
 
 - [Gitter discussion: Subcontexts implement what .NET calls Transient or Request scope](https://matrix.to/#/!fjiBThWZrkChOzTruT:gitter.im/$PxWlZnbRyGICEgi8y5HT5m-Z111EeJu9PFt906_6iFw?via=gitter.im&via=matrix.org&via=matrix.freyachat.eu)
 
