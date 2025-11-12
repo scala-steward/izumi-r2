@@ -7,6 +7,11 @@ import izumi.fundamentals.platform.language.Quirks.Discarder
 
 import scala.collection.mutable
 
+/**
+  * This TestReporter orders test events in a way that's digestible by Intellij.
+  *
+  * It exists ONLY for Intellij compat
+  */
 class SafeTestReporter(underlying: TestReporter) extends TestReporter {
   private val delayedReports = new mutable.LinkedHashMap[FullMeta, mutable.Queue[Delayed]]()
   private val runningSuites = new mutable.HashMap[SuiteId, FullMeta]()
