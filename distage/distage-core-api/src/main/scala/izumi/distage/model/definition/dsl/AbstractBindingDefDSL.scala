@@ -220,7 +220,7 @@ trait AbstractBindingDefDSL[BindDSL[_], BindDSLAfterFrom[_], SetDSL[_]] extends 
       @inline final def discard(): Unit = ()
     }
   }
-  final protected implicit lazy val mutationContext: MutationContext = new MutationContext
+  final protected implicit def mutationContext: MutationContext = new MutationContext
 
 }
 
