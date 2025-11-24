@@ -76,7 +76,7 @@ And like this in JSON:
 
 Note:
 
-1. JSON formatter is type aware!
+1. JSON formatter is type aware! Conversion rules to JSON are controlled by `LogstageCodec` typeclass, e.g. Scala collections (`just_a_list`) are converted to JSON arrays. By default, objects are converted using `.toString`.
 2. Each JSON message contains `@class` field with holds a unique `event class` identifier.
    All events produced by the same source code line will share the same `event class`.
 
@@ -110,6 +110,50 @@ logger.info(s"My message: ${Some.expression -> "argname" -> null}")
 
 ```scala
 logger.info(${camelCaseName -> ' '})
+```
+
+### Convenience Methods
+
+#### logValues
+
+The `logValues` method provides a shorthand for logging values without an accompanying message:
+
+```scala
+logger.logValues(Info)(a, b, c)
+```
+
+This produces equivalent output to `logger.info(s"$a, $b, $c")`.
+
+#### logMethod & logMethodF
+
+The `logMethod` and `logMethodF` methods log both the arguments passed to a function and its result or error:
+
+```scala
+logger.logMethodF(Info)(f(a, b, c))
+```
+
+Will output on success:
+```
+Call to f(a=1, b=2, c=3) => result=6
+```
+
+Will output on failure:
+```
+Call to f(a=1, b=2, c=3) => error=IllegalArgumentException: ...
+```
+
+Optional parameters:
+- `printTypes: Boolean`: if `true`, logs type parameters
+- `printImplicits: Boolean`: if `true`, logs implicit parameters
+
+Example with options:
+```scala
+logger.logMethodF(Info, printTypes = true, printImplicits = true)(f(a, b, c))
+```
+
+Will output:
+```
+Call to f[A=Int](a=1, b=2, c=3)(using dummy=scala.DummyImplicit@2e013ba1) => result=6
 ```
 
 ## Basic setup
