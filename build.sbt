@@ -7082,6 +7082,7 @@ lazy val `izumi` = (project in file("."))
       s"-Xmacro-settings:git-head-commit=${com.github.sbt.git.SbtGit.GitKeys.gitHeadCommit.value.getOrElse("")}"
     ),
     crossScalaVersions := Nil,
+    libraryDependencies := Nil,
     ThisBuild / organization := "io.7mind.izumi",
     ThisBuild / publishTo := {
       // https://github.com/sbt/sbt/issues/8131

@@ -242,6 +242,7 @@ object Izumi {
 //        "target" := s"""baseDirectory.in(LocalProject("${Projects.root.id.value}")).value.toPath().resolve("target").resolve("${Projects
 //          .root.id.value}").toFile""".raw,
         "crossScalaVersions" := "Nil".raw,
+        "libraryDependencies" := "Nil".raw,
         "organization" in SettingScope.Build := "io.7mind.izumi",
         "publishTo" in SettingScope.Build :=
           """{
