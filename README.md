@@ -29,7 +29,7 @@
 What is it?
 ===========
 
-Izumi (*jp. 泉水, spring*) is an ecosystem of independent libraries and frameworks allowing you to significantly increase productivity of your Scala development.
+Izumi (jp. 泉水) is an ecosystem of independent libraries and frameworks allowing you to significantly increase productivity of your Scala development.
 
 including the following components:
 
@@ -138,5 +138,3 @@ Are you using Izumi? Please consider opening a pull request to list your organiz
 | [Evo.Pay](https://evo.company/) | <img src="https://raw.githubusercontent.com/7mind/izumi/develop/doc/microsite/src/main/tut/media/user-logo-evo-pay.svg?sanitize=true" alt="Evo.Pay" width="150"/> |
 | [Glidewell.io](https://glidewell.io/) | <img src="https://raw.githubusercontent.com/7mind/izumi/develop/doc/microsite/src/main/tut/media/user-logo-glidewell.svg?sanitize=true" alt="Glidewell.io" width="150"/> |
 | [PITS Global Data Recovery Services](https://pitsdatarecovery.net/) | <img src="https://raw.githubusercontent.com/7mind/izumi/develop/doc/microsite/src/main/tut/media/user-logo-pits.svg?sanitize=true" alt="PITS Global Data Recovery Services" width="150"/> |
-
-

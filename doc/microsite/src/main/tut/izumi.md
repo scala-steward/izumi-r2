@@ -6,7 +6,7 @@ Izumi Project
 
 ![izumi-logo](media/izumi-logo-full-purple.png)
 
-Izumi (*jp. 泉水, spring*) is an ecosystem of independent libraries and frameworks allowing you to significantly increase productivity of your Scala development.
+Izumi (jp. 泉水) is an ecosystem of independent libraries and frameworks allowing you to significantly increase productivity of your Scala development.
 
 including the following components:
 
