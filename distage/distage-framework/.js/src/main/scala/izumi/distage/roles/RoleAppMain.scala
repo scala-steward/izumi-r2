@@ -44,7 +44,7 @@ abstract class RoleAppMain[F[_]](
   protected def requiredRoles(@unused argv: ArgV): Vector[RoleArgs] = Vector.empty
 
   def main(args: Array[String]): Future[Unit] = {
-    val argv = ArgV.empty
+    val argv = ArgV(args)
     try {
       Injector.NoProxies[Identity]().produceRun(roleAppBootModule(argv)) {
         (appResource: AppResource[F]) =>
