@@ -122,9 +122,10 @@ object PlanCheckMaterializer extends PlanCheckMaterializerCommon {
         }
         if (warn) {
           implicit val ctx: Contexts.Context = qctx.asInstanceOf[QuotesImpl].ctx
-          val fatalWarnings =
-            ctx.settings.Wconf.value.contains("any:error") ||
-            ctx.settings.XfatalWarnings.value
+          val fatalWarnings = try {
+            ctx.settings.Wconf.value.contains("any:error")
+            || ctx.settings.Werror.value
+          } catch { case t: Throwable => true }
           if (fatalWarnings) {
             qctx.reflect.report.info(shortMessage)
           } else {
