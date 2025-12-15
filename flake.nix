@@ -48,6 +48,9 @@
             export JDK17=${pkgs.jdk17_headless}
             export JDK21=${pkgs.jdk21_headless}
             export JDK25=${pkgs.jdk25_headless}
+
+            export JAVA_HOME="$JDK25"
+            export PATH="$JAVA_HOME/bin:$PATH"
           '';
         };
       }
