@@ -31,6 +31,32 @@ class SyntaxTest extends AnyWordSpec {
     y[zio.IO]
   }
 
+  "WeakAsync attachment/conversion works" in {
+    import izumi.functional.bio.{WeakAsync2, F}
+    import java.io.Closeable
+
+    def x[F[+_, +_]: WeakAsync2](a: F[Nothing, Unit], b: F[Nothing, Unit], c: F[Throwable, Closeable]) = {
+      a.zipPar(b)
+      a.zipParLeft(b)
+      a.zipParRight(b)
+      a.zipWithPar(b)((a, b) => (a, b))
+      c.bracketAuto(_ => F.unit.flatMap(_ => F.unit).uninterruptible)
+      F.syncThrowable(())
+      F.sync(())
+      F.never
+      F.orTerminateK
+      F.orTerminateCats
+      F.unit: F[Nothing, Unit]
+    }
+
+    def y[F[+_, +_]: WeakAsync2]: F[Nothing, Unit] = {
+      F.parTraverse_(List(1))(_ => F.unit)
+    }
+
+    x[zio.IO](zio.ZIO.succeed(()), zio.ZIO.succeed(()), zio.ZIO.succeed(null: Closeable))
+    y[zio.IO]
+  }
+
   "BIOConcurrent attachment/conversion works" in {
     import izumi.functional.bio.{Concurrent2, F}
 
@@ -42,6 +68,8 @@ class SyntaxTest extends AnyWordSpec {
       a.flatMap(_ => b).flatMap(_ => F.unit)
       a.guaranteeCase(_ => a.race(b).widenError[Throwable].catchAll(_ => F.unit `orElse` F.uninterruptible(F.race(a, b))).void)
       F.fail("x"): F[String, Unit]
+      F.orTerminateK
+      F.orTerminateCats
       F.unit: F[Nothing, Unit]
     }
 
@@ -80,6 +108,21 @@ class SyntaxTest extends AnyWordSpec {
     a[zio.IO]
   }
 
+  "WeakTemporal2 attachment/conversion works" in {
+    import izumi.functional.bio.{WeakTemporal2, F}
+
+    def x[F[+_, +_]: WeakTemporal2](a: F[Nothing, Unit], b: F[Nothing, Unit]) = {
+      a.flatMap(_ => b).flatMap(_ => F.unit)
+      a.widenError[Throwable].catchAll(_ => F.unit `orElse` b).void
+      F.unit: F[Nothing, Unit]
+
+      F.pure(Some(1)).repeatUntil("error", 5.seconds, 10)
+      F.sleep(5.seconds): F[Nothing, Unit]
+    }
+
+    x[zio.IO](zio.ZIO.succeed(()), zio.ZIO.succeed(()))
+  }
+
   "BIOTemporal attachment/conversion works" in {
     import izumi.functional.bio.{Temporal2, F}
 
@@ -88,6 +131,7 @@ class SyntaxTest extends AnyWordSpec {
       a.widenError[Throwable].catchAll(_ => F.unit `orElse` b).void
       F.unit: F[Nothing, Unit]
 
+      F.pure(Some(1)).repeatUntil("error", 5.seconds, 10)
       F.sleep(5.seconds): F[Nothing, Unit]
       F.timeout(5.seconds)(F.forever(F.unit)): F[Nothing, Option[Unit]]
     }

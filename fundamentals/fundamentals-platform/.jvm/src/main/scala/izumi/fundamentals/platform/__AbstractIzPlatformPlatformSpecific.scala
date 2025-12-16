@@ -3,9 +3,10 @@ package izumi.fundamentals.platform
 import izumi.fundamentals.platform.jvm.IzJvm
 
 import scala.collection
+import scala.concurrent.ExecutionContext
 
 trait __AbstractIzPlatformPlatformSpecific {
-  def isScalaJS: Boolean = false
+  final val isScalaJS = false
 
   def getenvOption(s: String): Option[String] = Option(System.getenv(s))
 
@@ -19,4 +20,7 @@ trait __AbstractIzPlatformPlatformSpecific {
     val jvmArgs = runtimeMXBean.getInputArguments.asScala
     jvmArgs
   }
+
+  /** [[org.scalajs.macrotaskexecutor.MacrotaskExecutor]] on Scala.js, ExecutionContext.global otherwise */
+  def platformGlobalExecutionContext: ExecutionContext = ExecutionContext.global
 }

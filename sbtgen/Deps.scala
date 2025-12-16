@@ -36,6 +36,9 @@ object Izumi {
     val scala_java_time = Version.VExpr("V.scala_java_time")
     val scalamock = Version.VExpr("V.scalamock")
     val docker_java = Version.VExpr("V.docker_java")
+    val scalajs_java_securerandom = Version.VExpr("V.scalajs_java_securerandom")
+    val scalajs_macrotask_executor = Version.VExpr("V.scalajs_macrotask_executor")
+    val portable_scala_reflect = Version.VExpr("V.portable_scala_reflect")
   }
 
   object PV {
@@ -47,7 +50,6 @@ object Izumi {
     val sbt_unidoc = Version.VExpr("PV.sbt_unidoc")
     val sbt_scoverage = Version.VExpr("PV.sbt_scoverage")
     val sbt_pgp = Version.VExpr("PV.sbt_pgp")
-    val sbt_assembly = Version.VExpr("PV.sbt_assembly")
 
     val scala_js_version = Version.VExpr("PV.scala_js_version")
   }
@@ -144,6 +146,9 @@ object Izumi {
 
     final val scala_java_time = Library("io.github.cquiroz", "scala-java-time", V.scala_java_time, LibraryType.Auto)
     final val scalamock = Library("org.scalamock", "scalamock", V.scalamock, LibraryType.Auto)
+    final val scalajs_java_securerandom = Library("org.scala-js", "scalajs-java-securerandom", V.scalajs_java_securerandom, LibraryType.Auto)
+      .more(LibSetting.Raw("cross CrossVersion.for3Use2_13"))
+    final val scalajs_macrotask_executor = Library("org.scala-js", "scala-js-macrotask-executor", V.scalajs_macrotask_executor, LibraryType.Auto)
 
     final val slf4j_api = Library("org.slf4j", "slf4j-api", V.slf4j, LibraryType.Invariant)
     final val slf4j_simple = Library("org.slf4j", "slf4j-simple", V.slf4j, LibraryType.Invariant)
@@ -157,6 +162,9 @@ object Izumi {
     val docker_java_transport_zerodep = Library("com.github.docker-java", "docker-java-transport-zerodep", V.docker_java, LibraryType.Invariant)
 
     val javaXInject = Library("javax.inject", "javax.inject", "1", LibraryType.Invariant)
+
+    val portable_scala_reflect = Library("org.portable-scala", "portable-scala-reflect", V.portable_scala_reflect, LibraryType.Auto)
+      .more(LibSetting.Raw("cross CrossVersion.for3Use2_13"))
   }
 
   import Deps._
@@ -208,21 +216,16 @@ object Izumi {
     final val jvmSbt = Seq(jvmPlatformSbt)
   }
 
-  final val assemblyPluginJvm = Plugin("AssemblyPlugin", Platform.Jvm)
-  final val assemblyPluginJs = Plugin("AssemblyPlugin", Platform.Js)
-
   object Projects {
 
     final val plugins = Plugins(
       Seq(Plugin("SitePreviewPlugin")),
-      Seq(assemblyPluginJs, assemblyPluginJvm),
     )
 
     object root {
       final val id = ArtifactId("izumi")
       final val plugins = Plugins(
         enabled = Seq(Plugin("SbtgenVerificationPlugin")),
-        disabled = Seq(Plugin("AssemblyPlugin")),
       )
 
       final val outOfSource = Seq(
@@ -507,6 +510,7 @@ object Izumi {
           izumi_reflect in Scope.Compile.all,
           scala_reflect,
           fast_classpath_scanner in Scope.Provided.all,
+          scalajs_macrotask_executor in Scope.Compile.js
         ),
         depends = Seq(
           Projects.fundamentals.functional,
@@ -659,7 +663,10 @@ object Izumi {
       ),
       Artifact(
         name = Projects.distage.extensionLogstage,
-        libs = Seq(zio_core in Scope.Test.all),
+        libs = Seq(
+          cats_effect in Scope.Test.all,
+          zio_core in Scope.Test.all
+        ),
         depends = Seq(Projects.distage.config, Projects.distage.coreApi).map(_ in Scope.Compile.all) ++
           Seq(Projects.distage.core).map(_ in Scope.Test.all) ++
           Seq(Projects.logstage.core).map(_ tin Scope.Compile.all),
@@ -694,19 +701,20 @@ object Izumi {
       ),
       Artifact(
         name = Projects.distage.testkitCore,
-        libs = Nil,
+        libs = Seq(scalajs_java_securerandom in Scope.Compile.js),
         depends = Seq(Projects.distage.framework).map(_ in Scope.Compile.all),
-        platforms = Targets.jvm,
+        platforms = Targets.cross,
       ),
       Artifact(
         name = Projects.distage.testkitScalatest,
         libs = allMonadsOptional ++ Seq(
-          scalamock in Scope.Test.all.scalaVersion(ScalaVersionScope.AllScala2)
+          scalamock in Scope.Test.all,
+          portable_scala_reflect in Scope.Compile.js,
         ) ++ scalatest_all.map(_ in Scope.Compile.all),
         depends = Seq(Projects.distage.testkitCore).map(_ in Scope.Compile.all) ++
           Seq(Projects.distage.core, Projects.distage.plugins).map(_ in Scope.Compile.all) ++
           Seq(Projects.distage.framework).map(_ tin Scope.Compile.all),
-        platforms = Targets.jvm,
+        platforms = Targets.cross,
         settings = Seq(
           // Ignore scala-xml version conflict between scoverage where scalatest requires scala-xml v2
           // and scoverage requires scala-xml v1 on Scala 2.12,
@@ -751,6 +759,7 @@ object Izumi {
           circe_parser in Scope.Test.all,
           circe_literal in Scope.Test.all,
           circe_generic in Scope.Test.all,
+          cats_effect in Scope.Test.all,
           zio_core in Scope.Test.all,
         ),
         depends = Seq(Projects.logstage.core).map(_ tin Scope.Compile.all),
@@ -941,9 +950,7 @@ object Izumi {
     ) ++ scalatest_all.map(_ in Scope.Test.all),
     rootPlugins = Projects.root.plugins,
     globalPlugins = Projects.plugins,
-    pluginConflictRules = Map(assemblyPluginJvm.name -> true),
     appendPlugins = Defaults.SbtGenPlugins ++ Seq(
-      SbtPlugin("com.eed3si9n", "sbt-assembly", PV.sbt_assembly),
       SbtPlugin("com.github.sbt", "sbt-pgp", PV.sbt_pgp),
       SbtPlugin("org.scoverage", "sbt-scoverage", PV.sbt_scoverage),
       SbtPlugin("com.github.sbt", "sbt-unidoc", PV.sbt_unidoc),

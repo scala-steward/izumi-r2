@@ -1,7 +1,7 @@
 package izumi.functional.bio
 
 import cats.~>
-import izumi.functional.bio.data.RestoreInterruption2
+import izumi.functional.bio.data.{Morphism1, RestoreInterruption2}
 
 trait Panic2[F[+_, +_]] extends Bracket2[F] with PanicSyntax {
   def terminate(v: => Throwable): F[Nothing, Nothing]
@@ -9,6 +9,8 @@ trait Panic2[F[+_, +_]] extends Bracket2[F] with PanicSyntax {
   /** @note Will return either [[Exit.Success]], [[Exit.Error]] or [[Exit.Termination]].
    *       [[Exit.Interruption]] cannot be sandboxed – use [[guaranteeOnInterrupt]] for cleanups on interruptions. */
   def sandbox[E, A](r: F[E, A]): F[Exit.FailureUninterrupted[E], A]
+
+  def fromSandboxExit[E, A](effect: => Exit.Uninterrupted[E, A]): F[E, A]
 
   /**
     * Signal interruption to this fiber.
@@ -46,7 +48,7 @@ trait Panic2[F[+_, +_]] extends Bracket2[F] with PanicSyntax {
   def sendInterruptToSelf: F[Nothing, Unit]
 
   /**
-    * Designate the effect uninterruptible, with exception of regions
+    * Designate the effect uninterruptible, with the exception of regions
     * in it that are specifically marked to restore previous interruptibility
     * status using the provided `RestoreInterruption` function
     *
@@ -78,12 +80,10 @@ trait Panic2[F[+_, +_]] extends Bracket2[F] with PanicSyntax {
     * `F.uninterruptible { F.uninterruptibleExcept { restore => restore(F.sleep(1.second)) }`
     * is fully uninterruptible throughout
     */
-  def uninterruptibleExcept[E, A](r: RestoreInterruption2[F] => F[E, A]): F[E, A]
+  def uninterruptibleExcept[E, A](f: RestoreInterruption2[F] => F[E, A]): F[E, A]
 
-  def fromSandboxExit[E, A](effect: => Exit.Uninterrupted[E, A]): F[E, A]
-
-  def uninterruptible[E, A](r: F[E, A]): F[E, A] = {
-    uninterruptibleExcept(_ => r)
+  def uninterruptible[E, A](f: F[E, A]): F[E, A] = {
+    uninterruptibleExcept(_ => f)
   }
 
   /** Like [[bracketCase]], but `acquire` can contain marked interruptible regions as in [[uninterruptibleExcept]] */
@@ -99,10 +99,18 @@ trait Panic2[F[+_, +_]] extends Bracket2[F] with PanicSyntax {
     catchAll(r)(terminate(_))
   }
 
+  @inline final def orTerminateK: Morphism1[F[Throwable, _], F[Nothing, _]] = {
+    Morphism1(orTerminate)
+  }
+
   /** @note Will return either [[Exit.Success]], [[Exit.Error]] or [[Exit.Termination]].
    *       [[Exit.Interruption]] cannot be sandboxed. Use [[guaranteeOnInterrupt]] for cleanups on interruptions. */
   @inline final def sandboxExit[E, A](r: F[E, A]): F[Nothing, Exit.Uninterrupted[E, A]] = {
     redeemPure(sandbox(r))(identity, Exit.Success(_))
+  }
+
+  @inline final def sandboxCatchAll[E,A, E2](r: F[E,A])(f: Exit.FailureUninterrupted[E] => F[E2, A]): F[E2, A] = {
+    catchAll(sandbox(r))(f)
   }
 
   // defaults
@@ -113,8 +121,8 @@ trait Panic2[F[+_, +_]] extends Bracket2[F] with PanicSyntax {
 
 private[bio] sealed trait PanicSyntax
 object PanicSyntax {
-  implicit final class PanicOrTerminateK[F[+_, +_]](private val F: Panic2[F]) extends AnyVal {
-    def orTerminateK[R]: F[Throwable, _] ~> F[Nothing, _] = {
+  implicit final class PanicOrTerminateCats[F[+_, +_]](private val F: Panic2[F]) extends AnyVal {
+    def orTerminateCats: F[Throwable, _] ~> F[Nothing, _] = {
       new (F[Throwable, _] ~> F[Nothing, _]) {
         override def apply[A](fa: F[Throwable, A]): F[Nothing, A] = F.orTerminate(fa)
       }

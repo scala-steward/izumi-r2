@@ -1,95 +1,158 @@
 package izumi.distage.testkit.services.scalatest.dstest
 
-import java.util.concurrent.ConcurrentHashMap
-import java.util.concurrent.atomic.AtomicBoolean
-import izumi.distage.model.reflection.SafeType
-import izumi.distage.testkit.model.DistageTest
-import izumi.fundamentals.platform.language.Quirks._
-import izumi.reflect.TagK
+import izumi.distage.testkit.DebugProperties
+import izumi.distage.testkit.model.{DistageTest, SuiteId}
+import izumi.fundamentals.platform.console.TrivialLogger
+import izumi.fundamentals.platform.language.Quirks.Discarder
+import izumi.fundamentals.platform.language.types.HigherKindedAny.AnyF
+import org.scalatest.distage.DistageScalatestTestSuiteRunner
+import org.scalatest.events.{Event, Ordinal}
+import org.scalatest.tools.Runner
 import org.scalatest.{Reporter, StatefulStatus, Tracker}
 
+import java.util.concurrent.atomic.AtomicBoolean
+import scala.annotation.unchecked.uncheckedVariance
 import scala.collection.mutable
 import scala.util.chaining.scalaUtilChainingOps
 
 object DistageTestsRegistrySingleton {
-  final case class SuiteReporter(tracker: Tracker, reporter: Reporter)
+  final case class InstantiatedSuiteHandle[+F[_]](
+    suite: DistageScalatestTestSuiteRunner[F @uncheckedVariance],
+    status: StatefulStatus,
+  )
+  final case class RunningSuiteHandle(
+    tracker: Tracker,
+    reporter: Reporter,
+  )
 
-  protected type Fake[T]
-  private object Fake
-  private val registry = new mutable.HashMap[SafeType, mutable.ArrayBuffer[DistageTest[Fake]]]()
-  private val statuses = new mutable.HashMap[SafeType, Option[mutable.HashMap[String, StatefulStatus]]]()
-  private val suiteReporters = new mutable.HashMap[String, Either[mutable.ArrayBuffer[SuiteReporter => Unit], SuiteReporter]]()
-  private val runTracker = new ConcurrentHashMap[SafeType, Fake.type]()
-  private val knownSuites = new ConcurrentHashMap[(SafeType, String), Fake.type]()
-  private val registrationOpen = new AtomicBoolean(true)
+  private val instantiatedSuiteHandles = new mutable.HashMap[String, InstantiatedSuiteHandle[AnyF]]()
+  private val runningSuiteHandles = new mutable.HashMap[String, Either[mutable.ArrayBuffer[RunningSuiteHandle => Unit], RunningSuiteHandle]]()
+  private val firstRunnerStarted = new AtomicBoolean(false)
+  private val runnerFinished = new AtomicBoolean(false)
 
-  def disableRegistration(): Unit = {
-    registrationOpen.set(false)
-  }
+  def collectAllTestkitTests[F[_]](instance: DistageScalatestTestSuiteRunner[F], isSbt: Boolean): Option[List[DistageTest[AnyF]]] = {
+    if (DistageTestsRegistrySingleton.permittedToRun()) {
+      val debugLogger: TrivialLogger = TrivialLogger.make[DistageTestsRegistrySingleton.type](DebugProperties.`izumi.distage.testkit.debug`.name)
+      debugLogger.log(s"Launching tests from $instance")
 
-  def registerSuite[F[_]: TagK](suiteId: String): Boolean = synchronized {
-    val tpe = SafeType.getK[F]
-    knownSuites.putIfAbsent((tpe, suiteId), Fake) eq null
-  }
+      val instantiatedClassNames = DistageTestsRegistrySingleton.currentInstantiatedSuites().map(_.suite.getClass.getName)
+      val discoveredClassNames: Set[String] = Runner.discoveredSuites.getOrElse {
+        if (isSbt) {
+          throw new RuntimeException(
+            s"""Impossible: distage-testkit-scalatest attempted initialization before ScalaTest completed classpath discovery! in=$instance
+               |
+               |Please report this as a bug to https://github.com/7mind/izumi/issues""".stripMargin
+          )
+        } else {
+          Set.empty[String]
+        }
+      }
+      val suiteClass = classOf[DistageScalatestTestSuiteRunner[F]]
 
-  def register[F[_]: TagK](t: DistageTest[F]): Unit = synchronized {
-    if (registrationOpen.get()) {
-      registry
-        .getOrElseUpdate(SafeType.getK[F], mutable.ArrayBuffer.empty)
-        .append(castTest(t))
-      ()
-    }
-  }
+      (discoveredClassNames -- instantiatedClassNames).foreach {
+        clsName =>
+          val clazz = __ClassReflectionPlatformSpecific.clazzForName(clsName)
+          if (__ClassReflectionPlatformSpecific.subclassOf(clazz, suiteClass)) {
+            // instantiate tests to make them register themselves
+            __ClassReflectionPlatformSpecific.newInstance(clazz)
+          }
+      }
 
-  def proceedWithTests[F[_]: TagK](): Option[Seq[DistageTest[F]]] = {
-    val tpe = SafeType.getK[F]
-    if (runTracker.putIfAbsent(tpe, Fake) eq null) {
-      Some(registeredTests[F])
+      val allSuites = DistageTestsRegistrySingleton.currentInstantiatedSuites().map(_.suite)
+
+      debugLogger.log(s"Instantiated new suites ${allSuites.map(_.getClass.getName).toSet -- instantiatedClassNames}")
+
+      import izumi.fundamentals.platform.strings.IzString.toRichIterable
+      debugLogger.log(s"found Suites (in $instance): ${allSuites.niceList()}")
+
+      // Gather tests from all suite instances for single-runner execution
+      // All DistageScalatestTestSuiteRunner instances extend WithSingletonTestRegistration
+      val allTests = allSuites.flatMap(_.registeredTests())
+
+      debugLogger.log(s"Gathered ${allTests.size} tests from ${allSuites.size} suites (global memoization mode)")
+
+      Some(allTests)
     } else {
       None
     }
   }
 
-  def resetRegistry(): Unit = {
-    runTracker.clear()
-    registry.clear()
-    registrationOpen.set(true)
-    statuses.clear()
-    suiteReporters.clear()
-    knownSuites.clear()
+  def resetRegistry(): Unit = synchronized {
+    instantiatedSuiteHandles.clear()
+    runningSuiteHandles.clear()
+    firstRunnerStarted.set(false)
+    runnerFinished.set(false)
     ()
   }
 
-  def registeredTests[F[_]: TagK]: Seq[DistageTest[F]] = synchronized {
-    val arr = registry.getOrElseUpdate(SafeType.getK[F], mutable.ArrayBuffer.empty)
-    castArray(arr).toSeq
+  def registerInstantiatedSuite[F[_]](suiteId: String, instance: DistageScalatestTestSuiteRunner[F]): StatefulStatus = synchronized {
+    if (runnerFinished.get()) {
+      // return completed status if the runner has already finished all tests before this test was instantiated
+      (new StatefulStatus).tap(_.setCompleted())
+    } else {
+      instantiatedSuiteHandles
+        .getOrElseUpdate(
+          suiteId, {
+            InstantiatedSuiteHandle(instance, new StatefulStatus)
+          },
+        ).status
+    }
   }
 
-  def registerStatus[F[_]: TagK](suiteId: String): StatefulStatus = synchronized {
-    statuses
-      .getOrElseUpdate(SafeType.getK[F], Some(mutable.HashMap.empty))
-      .fold {
-        // return completed test if the runner has already ran before this test got registered
-        (new StatefulStatus).tap(_.setCompleted())
-      } {
-        _.getOrElseUpdate(suiteId, new StatefulStatus)
-      }
+  def completeAllStatuses(): Unit = synchronized {
+    instantiatedSuiteHandles.foreach {
+      case (_, suiteHandle) =>
+        if (!suiteHandle.status.isCompleted()) {
+          suiteHandle.status.setCompleted()
+        }
+    }
+    runnerFinished.set(true)
   }
 
-  def completeStatuses[F[_]: TagK](): Unit = synchronized {
-    statuses.get(SafeType.getK[F]).flatten.foreach {
-      _.valuesIterator.foreach {
-        status =>
-          if (!status.isCompleted()) {
-            status.setCompleted()
-          }
+  def registerSuiteHandle(suiteId: String)(suiteReporter: RunningSuiteHandle): Unit = synchronized {
+    runningSuiteHandles.getOrElseUpdate(suiteId, Right(suiteReporter)) match {
+      case Left(reports) =>
+        runningSuiteHandles(suiteId) = Right(suiteReporter)
+        reports.foreach(_.apply(suiteReporter))
+      case Right(_) =>
+    }
+  }
+
+  def changeStatus(suiteId: String)(f: InstantiatedSuiteHandle[AnyF] => Unit): Unit = synchronized {
+    val suiteHandle = instantiatedSuiteHandles.getOrElse(
+      suiteId, {
+        val t = new RuntimeException(s"Tried to change status of non-instantiated suite `$suiteId` - all suites must be instantiated before distage-testkit starts")
+        t.printStackTrace()
+        throw t
+      },
+    )
+    f(suiteHandle)
+  }
+
+  def mkSuiteHandlerById(): SuiteHandlerById = new SuiteHandlerById {
+
+    override def doReportEvent(suiteId: SuiteId)(f: Ordinal => Event): Unit = {
+      runReport(suiteId.suiteId) {
+        case RunningSuiteHandle(tracker, reporter) =>
+          reporter.apply(f(tracker.nextOrdinal()))
       }
     }
-    statuses.put(SafeType.getK[F], None).discard()
+
+    override def doSetStatus(suiteId: SuiteId)(f: StatefulStatus => Unit): Unit = {
+      changeStatus(suiteId.suiteId)(s => f(s.status))
+    }
   }
 
-  def runReport(suiteId: String)(f: SuiteReporter => Unit): Unit = synchronized {
-    suiteReporters.getOrElseUpdate(suiteId, Left(mutable.ArrayBuffer.empty)) match {
+  private[dstest] def permittedToRun(): Boolean = {
+    firstRunnerStarted.compareAndSet(false, true)
+  }
+
+  private[dstest] def currentInstantiatedSuites(): List[InstantiatedSuiteHandle[AnyF]] = synchronized {
+    instantiatedSuiteHandles.valuesIterator.toList
+  }
+
+  private[dstest] def runReport(suiteId: String)(f: RunningSuiteHandle => Unit): Unit = synchronized {
+    runningSuiteHandles.getOrElseUpdate(suiteId, Left(mutable.ArrayBuffer.empty)) match {
       case Left(reports) =>
         (reports += f).discard()
       case Right(suiteReporter) =>
@@ -97,15 +160,4 @@ object DistageTestsRegistrySingleton {
     }
   }
 
-  def registerSuiteReporter(suiteId: String)(suiteReporter: SuiteReporter): Unit = synchronized {
-    suiteReporters.getOrElseUpdate(suiteId, Right(suiteReporter)) match {
-      case Left(reports) =>
-        suiteReporters(suiteId) = Right(suiteReporter)
-        reports.foreach(_.apply(suiteReporter))
-      case Right(_) =>
-    }
-  }
-
-  @inline private def castTest[F[_]](t: DistageTest[F]): DistageTest[Fake] = t.asInstanceOf[DistageTest[Fake]]
-  @inline private def castArray[C[_], F[_]](a: C[DistageTest[Fake]]): C[DistageTest[F]] = a.asInstanceOf[C[DistageTest[F]]]
 }

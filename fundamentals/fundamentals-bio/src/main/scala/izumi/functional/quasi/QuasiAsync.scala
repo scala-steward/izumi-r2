@@ -1,10 +1,11 @@
 package izumi.functional.quasi
 
-import izumi.functional.bio.{Async2, F, Temporal2}
+import izumi.functional.bio.{F, WeakAsync2, WeakTemporal2}
 import izumi.fundamentals.orphans.{`cats.effect.kernel.Async`, `cats.effect.kernel.GenTemporal`}
 import izumi.fundamentals.platform.functional.Identity
 
 import scala.collection.compat.*
+import scala.concurrent.Future
 import scala.concurrent.duration.FiniteDuration
 
 /**
@@ -19,6 +20,7 @@ import scala.concurrent.duration.FiniteDuration
   */
 trait QuasiAsync[F[_]] {
   def async[A](effect: (Either[Throwable, A] => Unit) => Unit): F[A]
+  def fromFuture[A](effect: => Future[A]): F[A]
   def parTraverse[A, B](l: IterableOnce[A])(f: A => F[B]): F[List[B]]
   def parTraverse_[A](l: IterableOnce[A])(f: A => F[Unit]): F[Unit]
   def parTraverseN[A, B](n: Int)(l: IterableOnce[A])(f: A => F[B]): F[List[B]]
@@ -30,10 +32,13 @@ object QuasiAsync extends LowPriorityQuasiAsyncInstances {
 
   implicit lazy val quasiAsyncIdentity: QuasiAsync[Identity] = __QuasiAsyncPlatformSpecific.quasiAsyncIdentity
 
-  implicit def fromBIO[F[+_, +_]: Async2]: QuasiAsync[F[Throwable, _]] = {
+  implicit def fromBIO[F[+_, +_]: WeakAsync2]: QuasiAsync[F[Throwable, _]] = {
     new QuasiAsync[F[Throwable, _]] {
       override def async[A](effect: (Either[Throwable, A] => Unit) => Unit): F[Throwable, A] = {
-        F.async(effect)
+        F.uninterruptible(F.async(effect))
+      }
+      override def fromFuture[A](effect: => Future[A]): F[Throwable, A] = {
+        F.uninterruptible(F.fromFuture(effect))
       }
       override def parTraverse_[A](l: IterableOnce[A])(f: A => F[Throwable, Unit]): F[Throwable, Unit] = {
         F.parTraverse_(l.iterator.to(Iterable))(f)
@@ -63,7 +68,10 @@ private[quasi] sealed trait LowPriorityQuasiAsyncInstances {
     private implicit val P: cats.Parallel[F] = cats.effect.kernel.instances.spawn.parallelForGenSpawn(F)
 
     override def async[A](effect: (Either[Throwable, A] => Unit) => Unit): F[A] = {
-      F.async_(effect)
+      F.uncancelable(_ => F.async_(effect))
+    }
+    override def fromFuture[A](effect: => Future[A]): F[A] = {
+      F.uncancelable(_ => F.fromFuture(F.delay(effect)))
     }
     override def parTraverse_[A](l: IterableOnce[A])(f: A => F[Unit]): F[Unit] = {
       cats.Parallel.parTraverse_(l.iterator.toList)(f)(using cats.instances.list.catsStdInstancesForList, P)
@@ -81,30 +89,30 @@ private[quasi] sealed trait LowPriorityQuasiAsyncInstances {
 }
 
 /**
-  * @note Dev note: This was split from QuasiAsync to stop distage-testkit runtime from depending on Temporal2 & Clock2,
+  * @note Dev note: This was split from QuasiAsync to stop distage-framework-docker runtime from depending on Temporal2 & Clock2,
   *       so that they wouldn't get memoized and the user could override them in tests without destroying memoization.
   */
 trait QuasiTemporal[F[_]] {
   def sleep(duration: FiniteDuration): F[Unit]
 }
 
-object QuasiTemporal extends LowPriorityQuasiTimerInstances {
+object QuasiTemporal extends LowPriorityQuasiTemporalInstances {
   def apply[F[_]: QuasiTemporal]: QuasiTemporal[F] = implicitly
 
   implicit lazy val quasiTimerIdentity: QuasiTemporal[Identity] = new QuasiTemporal[Identity] {
-    override def sleep(duration: FiniteDuration): Identity[Unit] = {
+    override def sleep(duration: FiniteDuration): Unit = {
       Thread.sleep(duration.toMillis)
     }
   }
 
-  implicit def fromBIO[F[+_, +_]](implicit F: Temporal2[F]): QuasiTemporal[F[Throwable, _]] = new QuasiTemporal[F[Throwable, _]] {
+  implicit def fromBIO[F[+_, +_]](implicit F: WeakTemporal2[F]): QuasiTemporal[F[Throwable, _]] = new QuasiTemporal[F[Throwable, _]] {
     override def sleep(duration: FiniteDuration): F[Throwable, Unit] = {
       F.sleep(duration)
     }
   }
 }
 
-private[quasi] sealed trait LowPriorityQuasiTimerInstances {
+private[quasi] sealed trait LowPriorityQuasiTemporalInstances {
   /**
     * This instance uses 'no more orphans' trick to provide an Optional instance
     * only IFF you have cats-effect as a dependency without REQUIRING a cats-effect dependency.

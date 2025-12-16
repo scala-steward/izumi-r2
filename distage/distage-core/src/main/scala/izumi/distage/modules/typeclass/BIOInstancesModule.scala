@@ -1,7 +1,7 @@
 package izumi.distage.modules.typeclass
 
 import izumi.distage.model.definition.ModuleDef
-import izumi.functional.bio._
+import izumi.functional.bio.*
 import izumi.functional.bio.retry.Scheduler2
 import izumi.reflect.TagKK
 
@@ -40,8 +40,10 @@ object BIOInstancesModule {
     include(BIOInstancesModule[F])
 
     addImplicit[Async2[F]]
+    addImplicit[WeakAsync2[F]]
     addImplicit[Fork2[F]]
     addImplicit[Temporal2[F]]
+    addImplicit[WeakTemporal2[F]]
     addImplicit[Primitives2[F]]
     addImplicit[PrimitivesM2[F]]
     addImplicit[PrimitivesLocal2[F]]
