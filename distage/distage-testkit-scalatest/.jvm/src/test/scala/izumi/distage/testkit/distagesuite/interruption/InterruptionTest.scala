@@ -156,8 +156,9 @@ final class InterruptionTestDefaultAsync extends InterruptionTest {
 }
 
 object timed {
+  private def deadline: ZonedDateTime = LocalDateTime.of(2025, 12, 25, 0, 0, 0).atZone(ZoneOffset.UTC)
   def apply[A](s: Seq[A]): Seq[A] = {
-    if (ZonedDateTime.now().isBefore(LocalDateTime.of(2025, 12, 22, 0, 0, 0).atZone(ZoneOffset.UTC))) Seq.empty else s
+    if (ZonedDateTime.now().isBefore(deadline)) Seq.empty else s
   }
 }
 
