@@ -67,6 +67,10 @@ object ForcedRecompilationToken {
             // NB: Typed node here DOES avoid retyping. Or at least, if a wrong type tree is put on the LHS,
             //     ClassCastException DOES happen at runtime, which ought to confirm it. (And if Typed wrapper is removed,
             //     type error happens at compile-time, not in runtime)
+            // NB2: If we set type directly via `dotty.tools.dotc.ast.Trees.Tree#withType`, we can force a java.lang.VerifyError
+            //      to happen at runtime, but that's about all the difference. Both the wrapper Typed node and the Literal
+            //      node have `myTpe` field already set at construction, using `withType` only lets us change the type here,
+            //      not set it where it was unset (as was the case on Scala 2)
             Typed(Literal(NullConstant()), TypeTree.of(using appliedTpe.asType))
           }
           cachedTypedTree = tree
