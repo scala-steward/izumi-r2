@@ -14,6 +14,7 @@
 - `CI_BRANCH`
 - `CI_BRANCH_TAG`
 - `CI_PULL_REQUEST`
+- `CI`
 
 # Axis
 - `platform`=`{jvm*|js|js-nojvm}`

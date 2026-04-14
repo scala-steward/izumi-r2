@@ -5,7 +5,7 @@ object V {
   // foundation
   val collection_compat = "2.13.0"
 
-  val kind_projector = "0.13.3"
+  val kind_projector = "0.13.4"
 
   val scalatest = "3.3.0-alpha.2"
   val scalatestplus_scalacheck = "3.3.0.0-alpha.2"
@@ -16,7 +16,7 @@ object V {
   val discipline = "1.7.0"
   val discipline_scalatest = "2.3.0"
 
-  val zio = "2.1.20"
+  val zio = "2.1.24"
   val zio_interop_cats = "23.1.0.5"
 
   val monix = "3.4.0"
@@ -24,7 +24,8 @@ object V {
 
   val circe = "0.14.14"
   val circe_derivation = "0.13.0-M5"
-  val pureconfig = "0.17.8"
+  val pureconfig = "0.17.10"
+  val pureconfig_212 = "0.17.8" // last version with Scala 2.12 support // FIXME: remove after dropping Scala 2.12
   val magnolia = "1.1.10"
   val jawn = "1.6.0"
 
@@ -34,7 +35,6 @@ object V {
   val scala_java_time = "2.6.0"
 
   // js-only dependencies
-  val scalajs_java_securerandom = "1.0.0"
   val scalajs_macrotask_executor = "1.1.1"
 
   // java-only dependencies below

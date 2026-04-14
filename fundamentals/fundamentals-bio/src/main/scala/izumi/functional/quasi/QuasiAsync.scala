@@ -1,6 +1,6 @@
 package izumi.functional.quasi
 
-import izumi.functional.bio.{F, WeakAsync2, WeakTemporal2}
+import izumi.functional.bio.{WeakAsync2, WeakTemporal2}
 import izumi.fundamentals.orphans.{`cats.effect.kernel.Async`, `cats.effect.kernel.GenTemporal`}
 import izumi.fundamentals.platform.functional.Identity
 
@@ -32,13 +32,13 @@ object QuasiAsync extends LowPriorityQuasiAsyncInstances {
 
   implicit lazy val quasiAsyncIdentity: QuasiAsync[Identity] = __QuasiAsyncPlatformSpecific.quasiAsyncIdentity
 
-  implicit def fromBIO[F[+_, +_]: WeakAsync2]: QuasiAsync[F[Throwable, _]] = {
+  implicit def fromBIO[F[+_, +_]](implicit F: WeakAsync2[F]): QuasiAsync[F[Throwable, _]] = {
     new QuasiAsync[F[Throwable, _]] {
       override def async[A](effect: (Either[Throwable, A] => Unit) => Unit): F[Throwable, A] = {
         F.uninterruptible(F.async(effect))
       }
       override def fromFuture[A](effect: => Future[A]): F[Throwable, A] = {
-        F.uninterruptible(F.fromFuture(effect))
+        F.fromFuture(effect)
       }
       override def parTraverse_[A](l: IterableOnce[A])(f: A => F[Throwable, Unit]): F[Throwable, Unit] = {
         F.parTraverse_(l.iterator.to(Iterable))(f)
@@ -71,7 +71,7 @@ private[quasi] sealed trait LowPriorityQuasiAsyncInstances {
       F.uncancelable(_ => F.async_(effect))
     }
     override def fromFuture[A](effect: => Future[A]): F[A] = {
-      F.uncancelable(_ => F.fromFuture(F.delay(effect)))
+      F.fromFutureCancelable(F.delay(effect -> F.unit))
     }
     override def parTraverse_[A](l: IterableOnce[A])(f: A => F[Unit]): F[Unit] = {
       cats.Parallel.parTraverse_(l.iterator.toList)(f)(using cats.instances.list.catsStdInstancesForList, P)

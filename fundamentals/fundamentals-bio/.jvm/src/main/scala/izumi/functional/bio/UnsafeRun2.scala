@@ -88,6 +88,7 @@ object UnsafeRun2 {
       }
     }
 
+    //      ZIOExit.toExit(runtime.unsafe.run(io)(using implicitly, zio.Unsafe))(true) // ZIO's runtime.unsafe.run doesn't work
     override def unsafeRunSync[E, A](io: => ZIO[R, E, A]): Exit[E, A] = {
       val interrupted = new AtomicBoolean(true)
       val result = runtime.unsafe.run {

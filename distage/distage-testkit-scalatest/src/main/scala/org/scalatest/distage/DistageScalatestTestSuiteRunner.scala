@@ -49,7 +49,6 @@ abstract class DistageScalatestTestSuiteRunner[F[_]](
     * }}}
     *
     * @see [[TestRunnerRuntime]]
-    * @see [[TestRunnerRuntime.defaultBlockingRuntimeFor]]
     * @see [[TestRunnerRuntime.defaultAsyncRuntimeFor]]
     */
   protected def testRunnerRuntime(): TestRunnerRuntime = TestRunnerRuntime.defaultPlatformRuntime
@@ -108,16 +107,19 @@ abstract class DistageScalatestTestSuiteRunner[F[_]](
     isSbt: Boolean,
   ): Unit = {
     val debugLogger: TrivialLogger = TrivialLogger.make[DistageScalatestTestSuiteRunner[F]](DebugProperties.`izumi.distage.testkit.debug`.name)
-    debugLogger.log(s"Scalatest Args: $args")
-    debugLogger.log(s"""tagsToInclude: ${args.filter.tagsToInclude}
-                       |tagsToExclude: ${args.filter.tagsToExclude}
-                       |dynaTags: ${args.filter.dynaTags}
-                       |excludeNestedSuites: ${args.filter.excludeNestedSuites}
-                       |""".stripMargin)
 
-    val testsToRun = applyScalatestDefaultFiltering(args, testsInThisRun, testName)
+    debugLogger.log(
+      s"""Scalatest
+         |  Args: $args
+         |  tagsToInclude: ${args.filter.tagsToInclude}
+         |  tagsToExclude: ${args.filter.tagsToExclude}
+         |  dynaTags: ${args.filter.dynaTags}
+         |  excludeNestedSuites: ${args.filter.excludeNestedSuites}""".stripMargin
+    )
 
-    debugLogger.err(s"GOING TO RUN TESTS in ${tagMonoIO.tag.repr} (in class ${getClass.getName}):${testsToRun.map(_.meta.test.id.toString).niceList()}")
+    val testsToRun = _applyScalatestDefaultFiltering(args, testsInThisRun, testName)
+
+    debugLogger.err(s"GOING TO RUN TESTS in ${tagMonoIO.tag.repr} (from class ${getClass.getName}):${testsToRun.map(_.meta.test.id.toString).niceList()}")
 
     val asyncGlobalSuitesControl = new AsyncGlobalSuitesControlHandle {
       override def completeOuterSuite(mbFailure: Option[Throwable]): Unit = {
@@ -135,7 +137,7 @@ abstract class DistageScalatestTestSuiteRunner[F[_]](
       }
     }
 
-    val testReporter = mkTestReporter(isSbt)
+    val testReporter = _mkTestReporter(isSbt)
 
     _doRunTests(debugLogger, asyncGlobalSuitesControl, testReporter, testsToRun)
   }
@@ -170,7 +172,7 @@ abstract class DistageScalatestTestSuiteRunner[F[_]](
     }
   }
 
-  private[distage] def mkTestReporter(isSbt: Boolean): TestReporter = {
+  protected def _mkTestReporter(isSbt: Boolean): TestReporter = {
     val suiteHandler = DistageTestsRegistrySingleton.mkSuiteHandlerById()
     val scalatestReporter = new DistageScalatestReporter(suiteHandler)
     if (isSbt) scalatestReporter else new SafeIntellijTestReporter(scalatestReporter)
@@ -214,7 +216,7 @@ abstract class DistageScalatestTestSuiteRunner[F[_]](
     }
   }
 
-  private def applyScalatestDefaultFiltering[F0[_]](args: Args, testsInThisRuntime: Seq[DistageTest[F0]], testName: Option[String]): Seq[DistageTest[F0]] = {
+  protected def _applyScalatestDefaultFiltering[F0[_]](args: Args, testsInThisRuntime: Seq[DistageTest[F0]], testName: Option[String]): Seq[DistageTest[F0]] = {
     testName match {
       case None =>
         testsInThisRuntime.filter {

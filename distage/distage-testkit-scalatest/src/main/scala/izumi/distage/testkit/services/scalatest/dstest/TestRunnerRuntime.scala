@@ -1,5 +1,6 @@
 package izumi.distage.testkit.services.scalatest.dstest
 
+import izumi.distage.model.definition.ModuleBase
 import izumi.distage.modules.DefaultModule
 import izumi.distage.testkit.model.{DistageTest, EnvResult}
 import izumi.distage.testkit.runner.TestkitRunnerModule
@@ -40,12 +41,12 @@ object TestRunnerRuntime extends TestRunnerRuntimePlatformSpecific {
   }
 
   def defaultAsyncRuntime: TestRunnerRuntime = {
-    asyncRuntimeFor[MiniBIOAsync[Throwable, _]](miniBIOAsyncTestECLifecycle())
+    asyncRuntimeFor[MiniBIOAsync[Throwable, _]](runnerLifecycleForMiniBIOAsync(), Nil)
   }
 
   /** Construct async test runtime using distage itself. DefaultModule[F] always contains a recipe for `QuasiIORunner[F]` */
   def defaultAsyncRuntimeFor[F[_]: TagK: QuasiIO: QuasiAsync: DefaultModule]: TestRunnerRuntime = {
-    asyncRuntimeFor[F](defaultRunnerLifecycleFor[F])
+    asyncRuntimeFor[F](defaultRunnerLifecycleFor[F], Nil)
   }
 
   def defaultRunnerLifecycleFor[F[_]: TagK: DefaultModule]: Lifecycle[Identity, QuasiIORunner[F]] = {
@@ -53,7 +54,8 @@ object TestRunnerRuntime extends TestRunnerRuntimePlatformSpecific {
   }
 
   def asyncRuntimeFor[F[_]: TagK: QuasiIO: QuasiAsync](
-    runtimeLifecycle: Lifecycle[Identity, QuasiIORunner[F]]
+    runtimeLifecycle: Lifecycle[Identity, QuasiIORunner[F]],
+    runnerOverrides: List[ModuleBase],
   ): TestRunnerRuntime = new TestRunnerRuntime {
     override def runTests[F0[_]](
       asyncSuitesHandle: AsyncGlobalSuitesControlHandle,
@@ -67,7 +69,7 @@ object TestRunnerRuntime extends TestRunnerRuntimePlatformSpecific {
         try {
           val runtime = runtimeLifecycle.extract(alloc).merge
           runtime.runFutureInterruptible {
-            TestkitRunnerModule.run[F](testReporter, isTestCancellation, testsToRun)
+            TestkitRunnerModule.run[F](testReporter, isTestCancellation, testsToRun, runnerOverrides)
           }
         } catch {
           case t: Throwable =>
@@ -99,7 +101,7 @@ object TestRunnerRuntime extends TestRunnerRuntimePlatformSpecific {
     }
   }
 
-  def miniBIOAsyncTestECLifecycle(): Lifecycle[Identity, QuasiIORunner[MiniBIOAsync[Throwable, _]]] = {
+  def runnerLifecycleForMiniBIOAsync(): Lifecycle[Identity, QuasiIORunner[MiniBIOAsync[Throwable, _]]] = {
     for {
       ec <- testECLifecycle()
     } yield {
