@@ -119,7 +119,7 @@ abstract class DistageScalatestTestSuiteRunner[F[_]](
 
     val testsToRun = _applyScalatestDefaultFiltering(args, testsInThisRun, testName)
 
-    debugLogger.err(s"GOING TO RUN TESTS in ${tagMonoIO.tag.repr} (from class ${getClass.getName}):${testsToRun.map(_.meta.test.id.toString).niceList()}")
+    debugLogger.log(s"GOING TO RUN TESTS in ${tagMonoIO.tag.repr} (from class ${getClass.getName}):${testsToRun.map(_.meta.test.id.toString).niceList()}")
 
     val asyncGlobalSuitesControl = new AsyncGlobalSuitesControlHandle {
       override def completeOuterSuite(mbFailure: Option[Throwable]): Unit = {
