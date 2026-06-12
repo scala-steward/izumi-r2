@@ -120,6 +120,27 @@ class RoleAppTest extends AnyWordSpec with WithProperties {
       assert(probe.resources.getCheckedResources().toSet[Any] == Set[Any](probe.locator.get[TestResource[IO]], probe.locator.get[IntegrationResource1[IO]]))
     }
 
+    "reject roles whose ids clash, failing early in the launcher lifecycle" in {
+      // regression: two distinct role classes (a RoleService and a RoleTask) sharing the same RoleDescriptor.id were
+      // silently collapsed into one available name, and requesting that id launched BOTH roles with no error.
+      try {
+        new TestEntrypointBase() {
+          override protected def pluginConfig: PluginConfig = PluginConfig.const(Seq(new ClashingRolesPlugin[IO]))
+        }.main(
+          Array(
+            "-ll",
+            logLevel,
+            ":" + ClashingRoles.clashingId,
+          )
+        )
+        fail("The launcher is expected to reject clashing role ids")
+      } catch {
+        case err: Throwable =>
+          assert(err.getMessage.contains(ClashingRoles.clashingId))
+          assert(err.getMessage.toLowerCase.contains("clash"))
+      }
+    }
+
     "be able to read activations from config" in {
       TestEntrypoint
         .main(

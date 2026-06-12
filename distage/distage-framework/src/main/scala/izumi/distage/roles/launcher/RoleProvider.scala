@@ -38,6 +38,9 @@ object RoleProvider {
 
     protected def getInfo(bindings: Set[Binding], requiredRoles: Set[String], roleType: SafeType): RolesInfo = {
       val availableRoleBindings = findRoleBindings(bindings, roleType)
+
+      checkRoleNameClashes(availableRoleBindings)
+
       val requiredRoleBindings = availableRoleBindings.filter(isRoleEnabled(requiredRoles))
 
       val roleNames = availableRoleBindings.map(_.id)
@@ -67,6 +70,26 @@ object RoleProvider {
       }
 
       rolesInfo
+    }
+
+    // Distinct role classes may declare the same `RoleDescriptor.id`. Such a clash would otherwise be silently
+    // collapsed into one name (and would launch every clashing binding when that name is requested), so it is rejected
+    // here, as early as role discovery, before any planning or provisioning happens.
+    protected def checkRoleNameClashes(availableRoleBindings: Set[RoleBinding]): Unit = {
+      val clashes = availableRoleBindings
+        .groupBy(_.id)
+        .filter(_._2.iterator.map(_.binding.key).toSet.size > 1)
+      if (clashes.nonEmpty) {
+        val rendered = clashes.toSeq.sortBy(_._1).map {
+          case (id, clashing) =>
+            val sources = clashing.iterator.map(b => s"${b.binding.key} defined at ${b.binding.origin}").toSeq.sorted
+            s"role id `$id` is declared by ${sources.niceList("    ")}"
+        }
+        logger.crit(s"Role name ${clashes.keys.niceList() -> "clashes"} detected")
+        throw new DIAppBootstrapException(
+          s"""Role name clashes detected, every role must have a unique id:${rendered.niceList()}"""
+        )
+      }
     }
 
     protected def findRoleBindings(bindings: Set[Binding], roleType: SafeType): Set[RoleBinding] = {
